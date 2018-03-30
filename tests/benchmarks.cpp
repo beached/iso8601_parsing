@@ -22,6 +22,7 @@
 
 #include <cstdlib>
 #include <date/date.h>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -43,7 +44,7 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 	return tp;
 }
 
-int main( ) {
+int main( int argc, char **argv ) {
 	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
 		date::sys_time<std::chrono::milliseconds> result{std::chrono::milliseconds{0}};
 		for( auto const &ts : timestamps ) {
@@ -59,14 +60,17 @@ int main( ) {
 		}
 		return result;
 	};
-
+	assert( argc > 1 );
+	std::ifstream infile{ argv[0] };
 	std::vector<std::string> timestamps{};
-	for( size_t n = 0; n < 10'000; ++n ) {
-		timestamps.emplace_back( "20170102T01:02:03.4567Z" );
+
+	std::string line{};
+	while( std::getline( infile, line ) ) {
+		timestamps.push_back( line );
 	}
 
-	daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
-	daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
-
+	auto const r1 = daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
+	auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
+	assert( r1 == r2 );
 	return EXIT_SUCCESS;
 }
