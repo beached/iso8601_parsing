@@ -22,6 +22,7 @@
 
 #include <cstdlib>
 #include <date/date.h>
+#include <date/chrono_io.h>
 #include <fstream>
 #include <string>
 #include <string_view>
@@ -40,6 +41,10 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 		in.exceptions( std::ios::failbit );
 		in.str( ts );
 		in >> date::parse( "%FT%T%Ez", tp );
+		if( in.fail( ) ) {
+			std::cerr << "Unknown timestamp format: " << ts << '\n';
+			throw invalid_iso_combinded_string{};
+		}
 	}
 	return tp;
 }
@@ -64,7 +69,7 @@ int main( int argc, char **argv ) {
 	assert( argc > 1 );
 	std::ifstream infile{ argv[1] };
 	*/
-	std::ifstream infile{ "../timestamps.txt" };
+	std::ifstream infile{"../timestamps.txt"};
 	std::vector<std::string> timestamps{};
 
 	std::string line{};
@@ -72,6 +77,18 @@ int main( int argc, char **argv ) {
 		timestamps.push_back( line );
 	}
 	std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
+	for( auto const &ts : timestamps ) {
+		auto const r1 = parse_iso8601_timestamp( ts );
+		auto const r2 = parse8601( ts );
+		if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
+			std::cout << "Difference while parsing " << ts << '\n';
+			using namespace date;
+			using namespace std::chrono;
+			std::cout << "r1: " << r1 << '\n';
+			std::cout << "r2: " << r2 << '\n';
+			exit( EXIT_FAILURE );
+		}
+	}
 
 	auto const r1 = daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
 	auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
@@ -80,3 +97,4 @@ int main( int argc, char **argv ) {
 	assert( r1.get( ) == r2.get( ) );
 	return EXIT_SUCCESS;
 }
+
