@@ -30,31 +30,17 @@
 struct invalid_iso_combinded_string {};
 
 namespace details {
-	template<typename Result, size_t e>
-	constexpr Result pow10( ) noexcept {
-		Result result = 1;
-		for( size_t n = 0; n < e; ++n ) {
-			result *= 10;
-		}
-		return result;
-	}
-	template<typename Result, size_t count, size_t n, std::enable_if_t<( count == 0 ), std::nullptr_t> = nullptr>
-	constexpr Result parse_unsigned_impl( std::string_view &digit_str ) {
-		return 0;
-	}
-
-	template<typename Result, size_t count, size_t n, std::enable_if_t<( count > 0 ), std::nullptr_t> = nullptr>
-	constexpr Result parse_unsigned_impl( std::string_view &digit_str ) {
-		return pow10<Result, count - 1>( ) * ( digit_str[n] - '0' ) +
-		       parse_unsigned_impl<Result, count - 1, n + 1>( digit_str );
-	}
-
 	template<typename Result, size_t count>
 	constexpr Result parse_unsigned( std::string_view &digit_str ) {
+		static_assert( count > 0, "Must consume at least one digit from string" );
 		if( digit_str.size( ) < count ) {
 			throw invalid_iso_combinded_string{};
 		}
-		Result result = parse_unsigned_impl<Result, count, 0>( digit_str );
+		Result result = digit_str[0] - '0';
+		for( size_t n = 1; n < count; ++n ) {
+			result *= 10;
+			result += digit_str[n] - '0';
+		}
 		digit_str.remove_prefix( count );
 		return result;
 	}

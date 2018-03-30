@@ -46,22 +46,25 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 
 int main( int argc, char **argv ) {
 	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
-		date::sys_time<std::chrono::milliseconds> result{std::chrono::milliseconds{0}};
+		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += parse_iso8601_timestamp( ts ).time_since_epoch( );
+			result += parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
 
 	auto const bench_iso8601_parser2 = []( std::vector<std::string> const &timestamps ) {
-		date::sys_time<std::chrono::milliseconds> result{std::chrono::milliseconds{0}};
+		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += parse8601( ts ).time_since_epoch( );
+			result += parse8601( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
+	/*
 	assert( argc > 1 );
 	std::ifstream infile{ argv[1] };
+	*/
+	std::ifstream infile{ "../timestamps.txt" };
 	std::vector<std::string> timestamps{};
 
 	std::string line{};
@@ -72,6 +75,8 @@ int main( int argc, char **argv ) {
 
 	auto const r1 = daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
 	auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
-	assert( r1 == r2 );
+	std::cout << "total 1: " << r1.get( ) << '\n';
+	std::cout << "total 2: " << r2.get( ) << '\n';
+	assert( r1.get( ) == r2.get( ) );
 	return EXIT_SUCCESS;
 }
