@@ -63,9 +63,7 @@ namespace details {
 
 	constexpr std::chrono::minutes parse_offset( std::string_view &offset_str ) {
 		using std::chrono::minutes;
-		if( static_cast<uint8_t>( offset_str.empty( ) ) ) {
-			return minutes{0};
-		} else if( to_lower( offset_str[0] ) == 'z' ) {
+		if( static_cast<uint8_t>( offset_str.empty( ) ) || to_lower( offset_str[0] ) == 'z' ) {
 			return minutes{0};
 		}
 
