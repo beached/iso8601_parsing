@@ -61,10 +61,9 @@ namespace details {
 		return static_cast<unsigned char>( c ) | static_cast<unsigned char>( 0x32 );
 	}
 
-	constexpr std::chrono::minutes parse_offset( std::string_view &offset_str ) {
-		using std::chrono::minutes;
+	constexpr int16_t parse_offset( std::string_view &offset_str ) {
 		if( static_cast<uint8_t>( offset_str.empty( ) ) || to_lower( offset_str[0] ) == 'z' ) {
-			return minutes{0};
+			return 0;
 		}
 
 		int8_t const is_negative = [&]( ) {
@@ -94,7 +93,7 @@ namespace details {
 		auto offset = parse_unsigned<int16_t, 2>( offset_str ) * 60;
 
 		if( offset_str.empty( ) ) {
-			return minutes{offset * is_negative};
+			return offset * is_negative;
 		} else if( !is_digit( offset_str.front( ) ) ) {
 			offset_str.remove_prefix( 1 );
 		}
@@ -102,52 +101,68 @@ namespace details {
 		// minutes
 		offset += parse_unsigned<int16_t, 2>( offset_str );
 
-		return minutes{offset * is_negative};
+		return offset * is_negative;
 	}
 
-	constexpr date::year_month_day parse_iso8601_date( std::string_view &date_str ) {
-		auto const y = parse_unsigned<int16_t, 4>( date_str );
+	constexpr auto parse_iso8601_date( std::string_view &date_str ) {
+		struct result_t {
+			int16_t y;
+			int8_t m;
+			int8_t d;
+		};
+		result_t result{0, 0, 0};
+		result.y = parse_unsigned<int16_t, 4>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
 
-		auto const m = parse_unsigned<int8_t, 2>( date_str );
+		result.m = parse_unsigned<int8_t, 2>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
 
-		auto const d = parse_unsigned<int8_t, 2>( date_str );
+		result.d = parse_unsigned<int8_t, 2>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
-		return date::year_month_day{date::year{y}, date::month( m ), date::day( d )};
+		return result;
 	}
 
-	constexpr std::chrono::milliseconds parse_iso8601_time( std::string_view &time_str ) {
-		auto const h = parse_unsigned<uint8_t, 2>( time_str );
+	constexpr auto parse_iso8601_time( std::string_view &time_str ) {
+		struct result_t {
+			uint8_t h;
+			uint8_t m;
+			uint8_t s;
+			uint16_t ms;
+		};
+		result_t result{0, 0, 0, 0};
+
+		result.h = parse_unsigned<uint8_t, 2>( time_str );
 		if( is_delemiter( time_str ) ) {
 			time_str.remove_prefix( 1 );
 		}
-		auto const m = parse_unsigned<uint8_t, 2>( time_str );
+
+		result.m = parse_unsigned<uint8_t, 2>( time_str );
 		if( is_delemiter( time_str ) ) {
 			time_str.remove_prefix( 1 );
 		}
-		auto const s = parse_unsigned<uint8_t, 2>( time_str );
-		uint16_t ms = 0;
+
+		result.s = parse_unsigned<uint8_t, 2>( time_str );
+
 		if( time_str[0] == '.' ) {
 			time_str.remove_prefix( 1 );
 			if( is_digit( time_str ) ) {
-				ms += 1000 * ( time_str[0] - '0' );
+				result.ms += 1000 * ( time_str[0] - '0' );
 				time_str.remove_prefix( 1 );
 				if( is_digit( time_str ) ) {
-					ms += 100 * ( time_str[0] - '0' );
+					result.ms += 100 * ( time_str[0] - '0' );
 					time_str.remove_prefix( 1 );
 					if( is_digit( time_str ) ) {
-						ms += 10 * ( time_str[0] - '0' );
+						result.ms += 10 * ( time_str[0] - '0' );
 						time_str.remove_prefix( 1 );
 					}
 					if( is_digit( time_str ) ) {
-						ms += time_str[0] - '0';
+						result.ms += time_str[0] - '0';
 						time_str.remove_prefix( 1 );
 
 						while( is_digit( time_str ) ) {
@@ -157,30 +172,37 @@ namespace details {
 				}
 			}
 		}
-		std::chrono::milliseconds result =
-		  std::chrono::hours{h} + std::chrono::minutes{m} + std::chrono::seconds{s} + std::chrono::milliseconds{ms};
-
 		return result;
 	}
 } // namespace details
 
 constexpr date::year_month_day parse_iso8601_date( std::string_view date_str ) {
-	return details::parse_iso8601_date( date_str );
+	auto const tmp = details::parse_iso8601_date( date_str );
+	return date::year_month_day{date::year{tmp.y}, date::month( tmp.m ), date::day( tmp.d )};
 }
 
 constexpr std::chrono::milliseconds parse_iso8601_time( std::string_view time_str ) {
-	return details::parse_iso8601_time( time_str );
+	auto const tmp = details::parse_iso8601_time( time_str );
+	std::chrono::milliseconds result = std::chrono::hours{tmp.h} + std::chrono::minutes{tmp.m} +
+	                                   std::chrono::seconds{tmp.s} + std::chrono::milliseconds{tmp.ms};
+
+	return result;
 }
 
 constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
 parse_iso8601_timestamp( std::string_view timestamp_str ) {
-	auto const dte = date::sys_days{details::parse_iso8601_date( timestamp_str )};
+	auto const dte = details::parse_iso8601_date( timestamp_str );
 	if( details::is_delemiter( timestamp_str ) ) {
 		timestamp_str.remove_prefix( 1 );
 	}
 	auto const tme = details::parse_iso8601_time( timestamp_str );
 	auto const ofst = details::parse_offset( timestamp_str );
-	auto result = ( dte + std::chrono::milliseconds( tme.count( ) ) ) - ofst;
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
+	  date::sys_days{date::year_month_day{date::year{dte.y}, date::month( dte.m ), date::day( dte.d )}} +
+	  std::chrono::hours{tme.h} + std::chrono::minutes{tme.m} + std::chrono::seconds{tme.s} +
+	  std::chrono::milliseconds{tme.ms}};
+
+	result = result - std::chrono::minutes{ofst};
 	return result;
 }
 

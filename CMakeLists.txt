@@ -20,4 +20,5 @@ set( SOURCE_FILES
 )
 
 add_executable(iso8601_test ${HEADER_FILES} ${TEST_FOLDER}/iso8601_tests.cpp )
+add_executable(benchmarks ${HEADER_FILES} ${TEST_FOLDER}/benchmarks.cpp )
 

@@ -22,6 +22,15 @@ ELSE( )
 ENDIF()
 
 externalproject_add(
+    header_libraries_prj
+    GIT_REPOSITORY "https://github.com/beached/header_libraries.git"
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/dependencies/header_libraries"
+    GIT_TAG "master"
+    INSTALL_DIR "${CMAKE_BINARY_DIR}/install"
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/install
+)
+
+externalproject_add(
     date_prj
     GIT_REPOSITORY "https://github.com/HowardHinnant/date.git"
     SOURCE_DIR "${CMAKE_BINARY_DIR}/dependencies/date"
