@@ -61,13 +61,14 @@ int main( int argc, char **argv ) {
 		return result;
 	};
 	assert( argc > 1 );
-	std::ifstream infile{ argv[0] };
+	std::ifstream infile{ argv[1] };
 	std::vector<std::string> timestamps{};
 
 	std::string line{};
-	while( std::getline( infile, line ) ) {
+	for( std::string line; getline( infile, line ); ) {
 		timestamps.push_back( line );
 	}
+	std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
 
 	auto const r1 = daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
 	auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
