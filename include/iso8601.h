@@ -133,10 +133,6 @@ constexpr date::year_month_day parse_iso8601_date( char const (&date_str)[N] ) {
 }
 
 constexpr std::chrono::milliseconds parse_iso8601_time( std::string_view &time_str ) {
-	if( details::is_delemiter( time_str ) ) {
-		time_str.remove_prefix( 1 );
-	}
-
 	auto const h = details::parse_unsigned<uint8_t, 2>( time_str );
 	if( details::is_delemiter( time_str ) ) {
 		time_str.remove_prefix( 1 );
@@ -185,6 +181,9 @@ constexpr std::chrono::milliseconds parse_iso8601_time( char const (&time_str)[N
 constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
 parse_iso8601_timestamp( std::string_view timestamp_str ) {
 	auto const dte = date::sys_days{ parse_iso8601_date( timestamp_str ) };
+	if( details::is_delemiter( timestamp_str ) ) {
+		timestamp_str.remove_prefix( 1 );
+	}
 	auto const tme = parse_iso8601_time( timestamp_str );
 	auto const ofst = parse_offset( timestamp_str );
 	auto result = (dte + std::chrono::milliseconds( tme.count() )) - ofst;
