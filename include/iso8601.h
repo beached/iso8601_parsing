@@ -34,7 +34,7 @@ namespace details {
 	constexpr Result parse_unsigned( std::string_view &digit_str ) {
 		static_assert( count > 0, "Must consume at least one digit from string" );
 		if( digit_str.size( ) < count ) {
-			throw invalid_iso_combinded_string{};
+			throw invalid_iso_combinded_string{ };
 		}
 		Result result = digit_str[0] - '0';
 		for( size_t n = 1; n < count; ++n ) {
@@ -45,12 +45,20 @@ namespace details {
 		return result;
 	}
 
+	constexpr bool is_digit( char const c ) noexcept {
+		return '0' <= c && c <= '9';
+	}
+
 	constexpr bool is_delemiter( std::string_view const &sv ) noexcept {
-		return !sv.empty( ) && !std::isdigit( sv.front( ) );
+		return !sv.empty( ) && !is_digit( sv.front( ) );
 	}
 
 	constexpr bool is_digit( std::string_view const &sv ) noexcept {
-		return !sv.empty( ) && std::isdigit( sv.front( ) );
+		return !sv.empty( ) && is_digit( sv.front( ) );
+	}
+
+	constexpr char to_lower( char const c) noexcept {
+		return static_cast<unsigned char>(c) | static_cast<unsigned char>(0x32);
 	}
 } // namespace details
 
@@ -58,7 +66,7 @@ constexpr std::chrono::minutes parse_offset( std::string_view &offset_str ) {
 	using std::chrono::minutes;
 	if( static_cast<uint8_t>( offset_str.empty( ) ) ) {
 		return minutes{0};
-	} else if( std::tolower( offset_str[0] ) == 'z' ) {
+	} else if( details::to_lower( offset_str[0] ) == 'z' ) {
 		return minutes{0};
 	}
 
@@ -90,7 +98,7 @@ constexpr std::chrono::minutes parse_offset( std::string_view &offset_str ) {
 
 	if( offset_str.empty( ) ) {
 		return minutes{offset * is_negative};
-	} else if( !std::isdigit( offset_str.front( ) ) ) {
+	} else if( !details::is_digit( offset_str.front( ) ) ) {
 		offset_str.remove_prefix( 1 );
 	}
 
@@ -116,6 +124,12 @@ constexpr date::year_month_day parse_iso8601_date( std::string_view &date_str ) 
 		date_str.remove_prefix( 1 );
 	}
 	return date::year_month_day{date::year{y}, date::month( m ), date::day( d )};
+}
+
+template<size_t N>
+constexpr date::year_month_day parse_iso8601_date( char const (&date_str)[N] ) {
+	std::string_view sv{ date_str };
+	return parse_iso8601_date( sv );
 }
 
 constexpr std::chrono::milliseconds parse_iso8601_time( std::string_view &time_str ) {
@@ -162,14 +176,18 @@ constexpr std::chrono::milliseconds parse_iso8601_time( std::string_view &time_s
 	return result;
 }
 
+template<size_t N>
+constexpr std::chrono::milliseconds parse_iso8601_time( char const (&time_str)[N] ) {
+	std::string_view sv{ time_str };
+	return parse_iso8601_time( sv );
+}
+
 constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
 parse_iso8601_timestamp( std::string_view timestamp_str ) {
-	auto const dte = parse_iso8601_date( timestamp_str );
+	auto const dte = date::sys_days{ parse_iso8601_date( timestamp_str ) };
 	auto const tme = parse_iso8601_time( timestamp_str );
 	auto const ofst = parse_offset( timestamp_str );
-
-	auto result = dte + tme;
-	result -= ofst.minutes( );
+	auto result = (dte + std::chrono::milliseconds( tme.count() )) - ofst;
 	return result;
 }
 

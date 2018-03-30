@@ -26,6 +26,10 @@
 
 
 int main( ) {
-
-	return EXIT_SUCCESS;
+	constexpr auto const dte = parse_iso8601_date( "2018-01-02" );
+	constexpr auto const tme = parse_iso8601_time( "01:02:03.3434" );
+	constexpr auto const tp = parse_iso8601_timestamp( "2018-01-02T01:02:03.3434Z" );
+	constexpr auto const tp2 = parse_iso8601_timestamp( "2018-01-02T01:02:03.3434+0000" );
+	static_assert( tp == tp2 );
+	return tp.time_since_epoch().count();
 }
