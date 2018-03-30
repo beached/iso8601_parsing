@@ -24,12 +24,13 @@
 
 #include "iso8601.h"
 
-
 int main( ) {
 	constexpr auto const dte = parse_iso8601_date( "2018-01-02" );
 	constexpr auto const tme = parse_iso8601_time( "01:02:03.3434" );
 	constexpr auto const tp = parse_iso8601_timestamp( "2018-01-02T01:02:03.3434Z" );
 	constexpr auto const tp2 = parse_iso8601_timestamp( "2018-01-02T01:02:03.3434+0000" );
+	constexpr auto const tp3 = parse_iso8601_timestamp( "20180102010203.3434Z" );
 	static_assert( tp == tp2 );
-	return tp.time_since_epoch().count();
+	static_assert( tp2 == tp3 );
+	return tp.time_since_epoch( ).count( );
 }

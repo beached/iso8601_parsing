@@ -34,7 +34,7 @@ namespace details {
 	constexpr Result parse_unsigned( std::string_view &digit_str ) {
 		static_assert( count > 0, "Must consume at least one digit from string" );
 		if( digit_str.size( ) < count ) {
-			throw invalid_iso_combinded_string{ };
+			throw invalid_iso_combinded_string{};
 		}
 		Result result = digit_str[0] - '0';
 		for( size_t n = 1; n < count; ++n ) {
@@ -57,8 +57,8 @@ namespace details {
 		return !sv.empty( ) && is_digit( sv.front( ) );
 	}
 
-	constexpr char to_lower( char const c) noexcept {
-		return static_cast<unsigned char>(c) | static_cast<unsigned char>(0x32);
+	constexpr char to_lower( char const c ) noexcept {
+		return static_cast<unsigned char>( c ) | static_cast<unsigned char>( 0x32 );
 	}
 } // namespace details
 
@@ -127,8 +127,8 @@ constexpr date::year_month_day parse_iso8601_date( std::string_view &date_str ) 
 }
 
 template<size_t N>
-constexpr date::year_month_day parse_iso8601_date( char const (&date_str)[N] ) {
-	std::string_view sv{ date_str };
+constexpr date::year_month_day parse_iso8601_date( char const ( &date_str )[N] ) {
+	std::string_view sv{date_str};
 	return parse_iso8601_date( sv );
 }
 
@@ -173,20 +173,20 @@ constexpr std::chrono::milliseconds parse_iso8601_time( std::string_view &time_s
 }
 
 template<size_t N>
-constexpr std::chrono::milliseconds parse_iso8601_time( char const (&time_str)[N] ) {
-	std::string_view sv{ time_str };
+constexpr std::chrono::milliseconds parse_iso8601_time( char const ( &time_str )[N] ) {
+	std::string_view sv{time_str};
 	return parse_iso8601_time( sv );
 }
 
 constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
 parse_iso8601_timestamp( std::string_view timestamp_str ) {
-	auto const dte = date::sys_days{ parse_iso8601_date( timestamp_str ) };
+	auto const dte = date::sys_days{parse_iso8601_date( timestamp_str )};
 	if( details::is_delemiter( timestamp_str ) ) {
 		timestamp_str.remove_prefix( 1 );
 	}
 	auto const tme = parse_iso8601_time( timestamp_str );
 	auto const ofst = parse_offset( timestamp_str );
-	auto result = (dte + std::chrono::milliseconds( tme.count() )) - ofst;
+	auto result = ( dte + std::chrono::milliseconds( tme.count( ) ) ) - ofst;
 	return result;
 }
 
