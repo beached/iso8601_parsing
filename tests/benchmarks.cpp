@@ -57,16 +57,17 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &t
 	int dy = 0;
 	int hr = 0;
 	int mi = 0;
-	float sc = 0.0f;
+	int sc = 0;
+	int ms = 0;
 
-	if( sscanf( ts.c_str( ), "%d-%d-%dT%d:%d:%fZ", &yr, &mo, &dy, &hr, &mi, &sc ) != 6 ) {
+	if( sscanf( ts.c_str( ), "%d-%d-%dT%d:%d:%d.%dZ", &yr, &mo, &dy, &hr, &mi, &sc, &ms ) != 7 ) {
 			std::cerr << "Unknown timestamp format: " << ts << '\n';
 			throw invalid_iso8601_timestamp{};
 	}
 
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
 	  date::sys_days{date::year_month_day{date::year{yr}, date::month( mo ), date::day( dy )}} + std::chrono::hours{hr} +
-	  std::chrono::minutes{mi} + std::chrono::seconds{static_cast<uint8_t>(sc)} + std::chrono::milliseconds{static_cast<uint16_t>(sc*1000.0f)}};
+	  std::chrono::minutes{mi} + std::chrono::seconds{sc} + std::chrono::milliseconds{ms}};
 
 	return result;
 }
