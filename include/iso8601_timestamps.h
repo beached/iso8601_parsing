@@ -32,7 +32,7 @@ struct invalid_iso8601_timestamp {};
 namespace details {
 	template<typename Result>
 	constexpr Result to_integer( char const c ) noexcept {
-		return static_cast<Result>( c - '0' );	
+		return static_cast<Result>( c - '0' );
 	}
 
 	template<typename Result, size_t count>
@@ -212,9 +212,8 @@ parse_iso8601_timestamp( std::string_view timestamp_str ) {
 	auto const tme = details::parse_iso8601_time( timestamp_str );
 	auto const ofst = details::parse_offset( timestamp_str );
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
-	  date::sys_days{date::year_month_day{date::year{dte.y}, date::month( dte.m ), date::day( dte.d )}} +
-	  std::chrono::hours{tme.h} + std::chrono::minutes{tme.m} + std::chrono::seconds{tme.s} +
-	  std::chrono::milliseconds{tme.ms}};
+	  date::sys_days{date::year{dte.y} / date::month( dte.m ) / date::day( dte.d )} + std::chrono::hours{tme.h} +
+	  std::chrono::minutes{tme.m} + std::chrono::seconds{tme.s} + std::chrono::milliseconds{tme.ms}};
 
 	result = result - std::chrono::minutes{ofst};
 	return result;
@@ -236,7 +235,7 @@ parse_javascript_timestamp( std::string_view timestamp_str ) {
 	auto const ms = details::parse_unsigned<uint16_t, 3>( timestamp_str.data( ) + 20 );
 
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
-	  date::sys_days{date::year_month_day{date::year{yr}, date::month( mo ), date::day( dy )}} + std::chrono::hours{hr} +
+	  date::sys_days{date::year{yr} / date::month( mo ) / date::day( dy )} + std::chrono::hours{hr} +
 	  std::chrono::minutes{mi} + std::chrono::seconds{sc} + std::chrono::milliseconds{ms}};
 
 	return result;

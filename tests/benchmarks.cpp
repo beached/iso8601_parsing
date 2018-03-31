@@ -61,8 +61,8 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &t
 	int ms = 0;
 
 	if( sscanf( ts.c_str( ), "%d-%d-%dT%d:%d:%d.%dZ", &yr, &mo, &dy, &hr, &mi, &sc, &ms ) != 7 ) {
-			std::cerr << "Unknown timestamp format: " << ts << '\n';
-			throw invalid_iso8601_timestamp{};
+		std::cerr << "Unknown timestamp format: " << ts << '\n';
+		throw invalid_iso8601_timestamp{};
 	}
 
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
@@ -97,7 +97,6 @@ int main( int argc, char **argv ) {
 		return result;
 	};
 
-
 	auto const bench_javascript_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
@@ -129,8 +128,8 @@ int main( int argc, char **argv ) {
 			}
 		}
 
-		auto const r1 = daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
-		auto const r2 = daw::bench_test( "date_parse", bench_iso8601_parser2, timestamps );
+		auto const r1 = daw::bench_test2( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps.size( ), timestamps );
+		auto const r2 = daw::bench_test2( "date_parse", bench_iso8601_parser2, timestamps.size( ), timestamps );
 		assert( r1.get( ) == r2.get( ) );
 	}
 	if( argc <= 2 ) {
@@ -160,9 +159,10 @@ int main( int argc, char **argv ) {
 			}
 		}
 
-		auto const r1 = daw::bench_test( "parse_javascript_timestamp", bench_javascript_parser, timestamps );
-		auto const r2 = daw::bench_test( "date_parse", bench_iso8601_parser2, timestamps );
-		auto const r3 = daw::bench_test( "sscanf", bench_iso8601_sscanf_parser, timestamps );
+		auto const r1 =
+		  daw::bench_test2( "parse_javascript_timestamp", bench_javascript_parser, timestamps.size( ), timestamps );
+		auto const r2 = daw::bench_test2( "date_parse", bench_iso8601_parser2, timestamps.size( ), timestamps );
+		auto const r3 = daw::bench_test2( "sscanf", bench_iso8601_sscanf_parser, timestamps.size( ), timestamps );
 		assert( r1.get( ) == r2.get( ) );
 		assert( r2.get( ) == r3.get( ) );
 	}
