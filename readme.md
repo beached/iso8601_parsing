@@ -1,4 +1,6 @@
 ### ISO 8601 Parsing
+## Requirements
+Because of the use of ```std::string_view``` the library requires C++ 17.
 
 ## Build instructions
 * 1 - ``` ./make_deps.sh (requires bash based shell) ```
