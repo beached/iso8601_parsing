@@ -40,7 +40,7 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 		in.clear( );
 		in.exceptions( std::ios::failbit );
 		in.str( ts );
-		in >> date::parse( "%FT%T%Ez", tp );
+		in >> date::parse( "%FT%T%z", tp );
 		if( in.fail( ) ) {
 			std::cerr << "Unknown timestamp format: " << ts << '\n';
 			throw invalid_iso_combinded_string{};
@@ -92,8 +92,6 @@ int main( int argc, char **argv ) {
 
 	auto const r1 = daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
 	auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
-	std::cout << "total 1: " << r1.get( ) << '\n';
-	std::cout << "total 2: " << r2.get( ) << '\n';
 	assert( r1.get( ) == r2.get( ) );
 	return EXIT_SUCCESS;
 }

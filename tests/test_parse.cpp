@@ -37,7 +37,7 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 		in.clear( );
 		in.exceptions( std::ios::failbit );
 		in.str( ts );
-		in >> date::parse( "%FT%T%Ez", tp );
+		in >> date::parse( "%FT%T%z", tp );
 		if( in.fail( ) ) {
 			std::cerr << "Unknown timestamp format: " << ts << '\n';
 			throw invalid_iso_combinded_string{};
