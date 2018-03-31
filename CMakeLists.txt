@@ -13,7 +13,7 @@ set( TEST_FOLDER "tests" )
 include_directories( ${HEADER_FOLDER} )
 
 set( HEADER_FILES
-		${HEADER_FOLDER}/iso8601.h
+		${HEADER_FOLDER}/iso8601_timestamps.h
 )
 
 set( SOURCE_FILES
