@@ -20,6 +20,9 @@ From the build directory
 ```
 
 # Library Interface
+``` C++
+#include "iso8601_timestamps.h"
+```
 
 Generic ISO 8601 Timestamp parser.  Will throw ```invalid_iso8601_timestamp``` if the format is unrecognized.
 ``` C++
