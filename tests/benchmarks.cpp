@@ -49,6 +49,28 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 	return tp;
 }
 
+date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &ts ) {
+	std::istringstream in{ts};
+	date::sys_time<std::chrono::milliseconds> tp;
+	int yr = 0;
+	int mo = 0;
+	int dy = 0;
+	int hr = 0;
+	int mi = 0;
+	float sc = 0.0f;
+
+	if( sscanf( ts.c_str( ), "%d-%d-%dT%d:%d:%fZ", &yr, &mo, &dy, &hr, &mi, &sc ) != 6 ) {
+			std::cerr << "Unknown timestamp format: " << ts << '\n';
+			throw invalid_iso8601_timestamp{};
+	}
+
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
+	  date::sys_days{date::year_month_day{date::year{yr}, date::month( mo ), date::day( dy )}} + std::chrono::hours{hr} +
+	  std::chrono::minutes{mi} + std::chrono::seconds{static_cast<uint8_t>(sc)} + std::chrono::milliseconds{static_cast<uint16_t>(sc*1000.0f)}};
+
+	return result;
+}
+
 int main( int argc, char **argv ) {
 	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
@@ -65,6 +87,15 @@ int main( int argc, char **argv ) {
 		}
 		return result;
 	};
+
+	auto const bench_iso8601_sscanf_parser = []( std::vector<std::string> const &timestamps ) {
+		uintmax_t result{0};
+		for( auto const &ts : timestamps ) {
+			result += sscanf_parse8601( ts ).time_since_epoch( ).count( );
+		}
+		return result;
+	};
+
 
 	auto const bench_javascript_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
@@ -117,6 +148,7 @@ int main( int argc, char **argv ) {
 		for( auto const &ts : timestamps ) {
 			auto const r1 = parse_javascript_timestamp( ts );
 			auto const r2 = parse8601( ts );
+			auto const r3 = sscanf_parse8601( ts );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
 				std::cout << "Difference while parsing " << ts << '\n';
 				using namespace date;
@@ -129,7 +161,9 @@ int main( int argc, char **argv ) {
 
 		auto const r1 = daw::bench_test( "parse_javascript_timestamp", bench_javascript_parser, timestamps );
 		auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
+		auto const r3 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_sscanf_parser, timestamps );
 		assert( r1.get( ) == r2.get( ) );
+		assert( r2.get( ) == r3.get( ) );
 	}
 	return EXIT_SUCCESS;
 }
