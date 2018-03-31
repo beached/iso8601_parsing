@@ -23,11 +23,13 @@ From the build directory
 
 Generic ISO 8601 Timestamp parser.  Can throw invalid_iso8601_timestamp if the format is unrecognized.
 ``` C++
-constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> parse_iso8601_timestamp( std::string_view timestamp_str );
+constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> 
+parse_iso8601_timestamp( std::string_view timestamp_str );
 ```
 
 Restricted Javascript flavor of ISO8601 timestamps parser.  Will throw invalid_javascript_timestamp if it doesn't adhere to the format used by Javascript.
 ``` C++
-constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> parse_javascript_timestamp( std::string_view timestamp_str );
+constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> 
+parse_javascript_timestamp( std::string_view timestamp_str );
 ```
 
