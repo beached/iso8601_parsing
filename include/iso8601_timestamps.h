@@ -30,28 +30,33 @@
 struct invalid_iso8601_timestamp {};
 
 namespace details {
+	template<typename Result>
+	constexpr Result to_integer( char const c ) noexcept {
+		return static_cast<Result>( c - '0' );	
+	}
+
 	template<typename Result, size_t count>
 	constexpr Result consume_unsigned( std::string_view &digit_str ) {
 		static_assert( count > 0, "Must consume at least one digit from string" );
 		if( digit_str.size( ) < count ) {
 			throw invalid_iso8601_timestamp{};
 		}
-		Result result = digit_str[0] - '0';
+		auto result = to_integer<Result>( digit_str[0] );
 		for( size_t n = 1; n < count; ++n ) {
 			result *= 10;
-			result += digit_str[n] - '0';
+			result += to_integer<Result>( digit_str[n] );
 		}
 		digit_str.remove_prefix( count );
 		return result;
 	}
 
 	template<typename Result, size_t count>
-	constexpr Result parse_unsigned( char const * digit_str ) {
+	constexpr Result parse_unsigned( char const *digit_str ) {
 		static_assert( count > 0, "Must consume at least one digit from string" );
-		Result result = digit_str[0] - '0';
+		auto result = to_integer<Result>( digit_str[0] );
 		for( size_t n = 1; n < count; ++n ) {
 			result *= 10;
-			result += digit_str[n] - '0';
+			result += to_integer<Result>( digit_str[n] );
 		}
 		return result;
 	}
@@ -69,7 +74,7 @@ namespace details {
 	}
 
 	constexpr char to_lower( char const c ) noexcept {
-		return static_cast<unsigned char>( c ) | static_cast<unsigned char>( 0x32 );
+		return static_cast<char>( static_cast<unsigned char>( c ) | static_cast<unsigned char>( 0x32u ) );
 	}
 
 	constexpr int16_t parse_offset( std::string_view &offset_str ) {
@@ -77,7 +82,7 @@ namespace details {
 			return 0;
 		}
 
-		int8_t const is_negative = [&]( ) {
+		auto const is_negative = [&]( ) -> int16_t {
 			switch( static_cast<uint8_t>( offset_str.front( ) ) ) {
 			case '-':
 				offset_str.remove_prefix( 1 );
@@ -104,7 +109,7 @@ namespace details {
 		auto offset = consume_unsigned<int16_t, 2>( offset_str ) * 60;
 
 		if( offset_str.empty( ) ) {
-			return offset * is_negative;
+			return static_cast<int16_t>( offset * is_negative );
 		} else if( !is_digit( offset_str.front( ) ) ) {
 			offset_str.remove_prefix( 1 );
 		}
@@ -112,27 +117,27 @@ namespace details {
 		// minutes
 		offset += consume_unsigned<int16_t, 2>( offset_str );
 
-		return offset * is_negative;
+		return static_cast<int16_t>( offset * is_negative );
 	}
 
 	constexpr auto parse_iso8601_date( std::string_view &date_str ) {
 		struct result_t {
-			int16_t y;
-			int8_t m;
-			int8_t d;
+			uint16_t y;
+			uint8_t m;
+			uint8_t d;
 		};
 		result_t result{0, 0, 0};
-		result.y = consume_unsigned<int16_t, 4>( date_str );
+		result.y = consume_unsigned<uint16_t, 4>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
 
-		result.m = consume_unsigned<int8_t, 2>( date_str );
+		result.m = consume_unsigned<uint8_t, 2>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
 
-		result.d = consume_unsigned<int8_t, 2>( date_str );
+		result.d = consume_unsigned<uint8_t, 2>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
@@ -141,37 +146,37 @@ namespace details {
 
 	constexpr auto parse_iso8601_time( std::string_view &time_str ) {
 		struct result_t {
-			uint8_t h;
-			uint8_t m;
-			uint8_t s;
-			uint16_t ms;
+			int8_t h;
+			int8_t m;
+			int8_t s;
+			int16_t ms;
 		};
 		result_t result{0, 0, 0, 0};
 
-		result.h = consume_unsigned<uint8_t, 2>( time_str );
+		result.h = consume_unsigned<int8_t, 2>( time_str );
 		if( is_delemiter( time_str ) ) {
 			time_str.remove_prefix( 1 );
 		}
 
-		result.m = consume_unsigned<uint8_t, 2>( time_str );
+		result.m = consume_unsigned<int8_t, 2>( time_str );
 		if( is_delemiter( time_str ) ) {
 			time_str.remove_prefix( 1 );
 		}
 
-		result.s = consume_unsigned<uint8_t, 2>( time_str );
+		result.s = consume_unsigned<int8_t, 2>( time_str );
 
 		if( time_str[0] == '.' ) {
 			time_str.remove_prefix( 1 );
 			if( is_digit( time_str ) ) {
 				if( is_digit( time_str ) ) {
-					result.ms += 100 * ( time_str[0] - '0' );
+					result.ms += 100 * to_integer<int16_t>( time_str[0] );
 					time_str.remove_prefix( 1 );
 					if( is_digit( time_str ) ) {
-						result.ms += 10 * ( time_str[0] - '0' );
+						result.ms += 10 * to_integer<int16_t>( time_str[0] );
 						time_str.remove_prefix( 1 );
 					}
 					if( is_digit( time_str ) ) {
-						result.ms += time_str[0] - '0';
+						result.ms += to_integer<int16_t>( time_str[0] );
 						time_str.remove_prefix( 1 );
 
 						while( is_digit( time_str ) ) {
