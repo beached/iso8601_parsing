@@ -129,7 +129,7 @@ int main( int argc, char **argv ) {
 		}
 
 		auto const r1 = daw::bench_test( "parse_iso8601_timestamp", bench_iso8601_parser, timestamps );
-		auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
+		auto const r2 = daw::bench_test( "date_parse", bench_iso8601_parser2, timestamps );
 		assert( r1.get( ) == r2.get( ) );
 	}
 	if( argc <= 2 ) {
@@ -160,8 +160,8 @@ int main( int argc, char **argv ) {
 		}
 
 		auto const r1 = daw::bench_test( "parse_javascript_timestamp", bench_javascript_parser, timestamps );
-		auto const r2 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_parser2, timestamps );
-		auto const r3 = daw::bench_test( "parse_iso8601_timestamp2", bench_iso8601_sscanf_parser, timestamps );
+		auto const r2 = daw::bench_test( "date_parse", bench_iso8601_parser2, timestamps );
+		auto const r3 = daw::bench_test( "sscanf", bench_iso8601_sscanf_parser, timestamps );
 		assert( r1.get( ) == r2.get( ) );
 		assert( r2.get( ) == r3.get( ) );
 	}
