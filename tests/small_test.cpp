@@ -26,7 +26,7 @@
 #include "iso8601_timestamps.h"
 
 extern std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> small_test( std::string_view ts_str ) {
-	return parse_javascript_timestamp( ts_str );
+	return date::parse_javascript_timestamp( ts_str );
 }
 
 int main( ) {

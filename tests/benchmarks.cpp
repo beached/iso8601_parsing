@@ -43,7 +43,7 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 		in >> date::parse( "%FT%T%z", tp );
 		if( in.fail( ) ) {
 			std::cerr << "Unknown timestamp format: " << ts << '\n';
-			throw invalid_iso8601_timestamp{};
+			throw date::invalid_iso8601_timestamp{};
 		}
 	}
 	return tp;
@@ -62,7 +62,7 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &t
 
 	if( sscanf( ts.c_str( ), "%d-%d-%dT%d:%d:%d.%dZ", &yr, &mo, &dy, &hr, &mi, &sc, &ms ) != 7 ) {
 		std::cerr << "Unknown timestamp format: " << ts << '\n';
-		throw invalid_iso8601_timestamp{};
+		throw date::invalid_iso8601_timestamp{};
 	}
 
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
@@ -76,7 +76,7 @@ int main( int argc, char **argv ) {
 	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
+			result += date::parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
@@ -100,7 +100,7 @@ int main( int argc, char **argv ) {
 	auto const bench_javascript_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
+			result += date::parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
@@ -116,7 +116,7 @@ int main( int argc, char **argv ) {
 		}
 		std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
 		for( auto const &ts : timestamps ) {
-			auto const r1 = parse_iso8601_timestamp( ts );
+			auto const r1 = date::parse_iso8601_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
 				std::cout << "Difference while parsing " << ts << '\n';
@@ -146,7 +146,7 @@ int main( int argc, char **argv ) {
 
 		std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
 		for( auto const &ts : timestamps ) {
-			auto const r1 = parse_javascript_timestamp( ts );
+			auto const r1 = date::parse_javascript_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			auto const r3 = sscanf_parse8601( ts );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
