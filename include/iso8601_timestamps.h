@@ -31,7 +31,7 @@ struct invalid_iso8601_timestamp {};
 
 namespace details {
 	template<typename Result, size_t count>
-	constexpr Result parse_unsigned( std::string_view &digit_str ) {
+	constexpr Result consume_unsigned( std::string_view &digit_str ) {
 		static_assert( count > 0, "Must consume at least one digit from string" );
 		if( digit_str.size( ) < count ) {
 			throw invalid_iso8601_timestamp{};
@@ -42,6 +42,17 @@ namespace details {
 			result += digit_str[n] - '0';
 		}
 		digit_str.remove_prefix( count );
+		return result;
+	}
+
+	template<typename Result, size_t count>
+	constexpr Result parse_unsigned( char const * digit_str ) {
+		static_assert( count > 0, "Must consume at least one digit from string" );
+		Result result = digit_str[0] - '0';
+		for( size_t n = 1; n < count; ++n ) {
+			result *= 10;
+			result += digit_str[n] - '0';
+		}
 		return result;
 	}
 
@@ -90,7 +101,7 @@ namespace details {
 		// TODO: determine if it is proper to have error condition when
 		// a digit is out of range for the time unit.
 		// hours
-		auto offset = parse_unsigned<int16_t, 2>( offset_str ) * 60;
+		auto offset = consume_unsigned<int16_t, 2>( offset_str ) * 60;
 
 		if( offset_str.empty( ) ) {
 			return offset * is_negative;
@@ -99,7 +110,7 @@ namespace details {
 		}
 
 		// minutes
-		offset += parse_unsigned<int16_t, 2>( offset_str );
+		offset += consume_unsigned<int16_t, 2>( offset_str );
 
 		return offset * is_negative;
 	}
@@ -111,17 +122,17 @@ namespace details {
 			int8_t d;
 		};
 		result_t result{0, 0, 0};
-		result.y = parse_unsigned<int16_t, 4>( date_str );
+		result.y = consume_unsigned<int16_t, 4>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
 
-		result.m = parse_unsigned<int8_t, 2>( date_str );
+		result.m = consume_unsigned<int8_t, 2>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
 
-		result.d = parse_unsigned<int8_t, 2>( date_str );
+		result.d = consume_unsigned<int8_t, 2>( date_str );
 		if( is_delemiter( date_str ) ) {
 			date_str.remove_prefix( 1 );
 		}
@@ -137,17 +148,17 @@ namespace details {
 		};
 		result_t result{0, 0, 0, 0};
 
-		result.h = parse_unsigned<uint8_t, 2>( time_str );
+		result.h = consume_unsigned<uint8_t, 2>( time_str );
 		if( is_delemiter( time_str ) ) {
 			time_str.remove_prefix( 1 );
 		}
 
-		result.m = parse_unsigned<uint8_t, 2>( time_str );
+		result.m = consume_unsigned<uint8_t, 2>( time_str );
 		if( is_delemiter( time_str ) ) {
 			time_str.remove_prefix( 1 );
 		}
 
-		result.s = parse_unsigned<uint8_t, 2>( time_str );
+		result.s = consume_unsigned<uint8_t, 2>( time_str );
 
 		if( time_str[0] == '.' ) {
 			time_str.remove_prefix( 1 );
@@ -208,28 +219,21 @@ struct invalid_javascript_timestamp {};
 
 constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
 parse_javascript_timestamp( std::string_view timestamp_str ) {
-	if( timestamp_str.size( ) != 24 ) {
+	if( timestamp_str.size( ) != 24 || details::to_lower( timestamp_str[23] ) != 'z' ) {
 		throw invalid_javascript_timestamp{};
 	}
-	auto const yr = details::parse_unsigned<uint16_t, 4>( timestamp_str );
-	timestamp_str.remove_prefix( 1 );
-	auto const mo = details::parse_unsigned<uint8_t, 2>( timestamp_str );
-	timestamp_str.remove_prefix( 1 );
-	auto const dy = details::parse_unsigned<uint8_t, 2>( timestamp_str );
-	timestamp_str.remove_prefix( 1 );
-	auto const hr = details::parse_unsigned<uint8_t, 2>( timestamp_str );
-	timestamp_str.remove_prefix( 1 );
-	auto const mi = details::parse_unsigned<uint8_t, 2>( timestamp_str );
-	timestamp_str.remove_prefix( 1 );
-	auto const sc = details::parse_unsigned<uint8_t, 2>( timestamp_str );
-	timestamp_str.remove_prefix( 1 );
-	auto const ms = details::parse_unsigned<uint16_t, 3>( timestamp_str );
-	if( details::to_lower( timestamp_str[0] ) != 'z' ) {
-		throw invalid_javascript_timestamp{};
-	}
+	auto const yr = details::parse_unsigned<uint16_t, 4>( timestamp_str.data( ) );
+	auto const mo = details::parse_unsigned<uint8_t, 2>( timestamp_str.data( ) + 5 );
+	auto const dy = details::parse_unsigned<uint8_t, 2>( timestamp_str.data( ) + 8 );
+	auto const hr = details::parse_unsigned<uint8_t, 2>( timestamp_str.data( ) + 11 );
+	auto const mi = details::parse_unsigned<uint8_t, 2>( timestamp_str.data( ) + 14 );
+	auto const sc = details::parse_unsigned<uint8_t, 2>( timestamp_str.data( ) + 17 );
+	auto const ms = details::parse_unsigned<uint16_t, 3>( timestamp_str.data( ) + 20 );
+
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
 	  date::sys_days{date::year_month_day{date::year{yr}, date::month( mo ), date::day( dy )}} + std::chrono::hours{hr} +
 	  std::chrono::minutes{mi} + std::chrono::seconds{sc} + std::chrono::milliseconds{ms}};
 
 	return result;
 }
+
