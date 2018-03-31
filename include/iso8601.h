@@ -27,14 +27,14 @@
 #include <date/date.h>
 #include <string_view>
 
-struct invalid_iso_combinded_string {};
+struct invalid_iso8601_timestamp {};
 
 namespace details {
 	template<typename Result, size_t count>
 	constexpr Result parse_unsigned( std::string_view &digit_str ) {
 		static_assert( count > 0, "Must consume at least one digit from string" );
 		if( digit_str.size( ) < count ) {
-			throw invalid_iso_combinded_string{};
+			throw invalid_iso8601_timestamp{};
 		}
 		Result result = digit_str[0] - '0';
 		for( size_t n = 1; n < count; ++n ) {
@@ -152,8 +152,6 @@ namespace details {
 		if( time_str[0] == '.' ) {
 			time_str.remove_prefix( 1 );
 			if( is_digit( time_str ) ) {
-				result.ms += 1000 * ( time_str[0] - '0' );
-				time_str.remove_prefix( 1 );
 				if( is_digit( time_str ) ) {
 					result.ms += 100 * ( time_str[0] - '0' );
 					time_str.remove_prefix( 1 );
@@ -206,3 +204,32 @@ parse_iso8601_timestamp( std::string_view timestamp_str ) {
 	return result;
 }
 
+struct invalid_javascript_timestamp {};
+
+constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
+parse_javascript_timestamp( std::string_view timestamp_str ) {
+	if( timestamp_str.size( ) != 24 ) {
+		throw invalid_javascript_timestamp{};
+	}
+	auto const yr = details::parse_unsigned<uint16_t, 4>( timestamp_str );
+	timestamp_str.remove_prefix( 1 );
+	auto const mo = details::parse_unsigned<uint8_t, 2>( timestamp_str );
+	timestamp_str.remove_prefix( 1 );
+	auto const dy = details::parse_unsigned<uint8_t, 2>( timestamp_str );
+	timestamp_str.remove_prefix( 1 );
+	auto const hr = details::parse_unsigned<uint8_t, 2>( timestamp_str );
+	timestamp_str.remove_prefix( 1 );
+	auto const mi = details::parse_unsigned<uint8_t, 2>( timestamp_str );
+	timestamp_str.remove_prefix( 1 );
+	auto const sc = details::parse_unsigned<uint8_t, 2>( timestamp_str );
+	timestamp_str.remove_prefix( 1 );
+	auto const ms = details::parse_unsigned<uint16_t, 3>( timestamp_str );
+	if( details::to_lower( timestamp_str[0] ) != 'z' ) {
+		throw invalid_javascript_timestamp{};
+	}
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
+	  date::sys_days{date::year_month_day{date::year{yr}, date::month( mo ), date::day( dy )}} + std::chrono::hours{hr} +
+	  std::chrono::minutes{mi} + std::chrono::seconds{sc} + std::chrono::milliseconds{ms}};
+
+	return result;
+}

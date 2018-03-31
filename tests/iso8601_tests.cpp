@@ -31,18 +31,21 @@ int main( ) {
 
 	constexpr auto const dte = parse_iso8601_date( "2018-01-02" );
 	std::cout << "2018-01-02 -> " << dte << '\n';
-	constexpr auto const tme = parse_iso8601_time( "01:02:03.3434" );
-	std::cout << "01:02:03.3434 -> " << tme << '\n';
-	constexpr auto const tme2 = parse_iso8601_time( "010203.3434" );
-	std::cout << "010203.3434 -> " << tme2<< '\n';
+	constexpr auto const tme = parse_iso8601_time( "01:02:03.343" );
+	std::cout << "01:02:03.343 -> " << tme << '\n';
+	constexpr auto const tme2 = parse_iso8601_time( "010203.343" );
+	std::cout << "010203.343 -> " << tme2<< '\n';
 	static_assert( tme == tme2 );
-	constexpr auto const tp = parse_iso8601_timestamp( "2018-01-02T01:02:03.3434Z" );
-	std::cout << "2018-01-02T01:02:03.3434Z -> " << tp << '\n';
-	constexpr auto const tp2 = parse_iso8601_timestamp( "2018-01-02T01:02:03.3434+0000" );
-	std::cout << "2018-01-02T01:02:03.3434+0000 ->" << tp2 << '\n';
-	constexpr auto const tp3 = parse_iso8601_timestamp( "20180102010203.3434Z" );
-	std::cout << "2018-01-02T01:02:03.3434Z ->" << tp3 << '\n';
+	constexpr auto const tp = parse_iso8601_timestamp( "2018-01-02T01:02:03.343Z" );
+	std::cout << "2018-01-02T01:02:03.343Z -> " << tp << '\n';
+	constexpr auto const tp2 = parse_iso8601_timestamp( "2018-01-02T01:02:03.343+0000" );
+	std::cout << "2018-01-02T01:02:03.343+0000 ->" << tp2 << '\n';
+	constexpr auto const tp3 = parse_iso8601_timestamp( "20180102010203.343Z" );
+	std::cout << "2018-01-02T01:02:03.343Z ->" << tp3 << '\n';
 	static_assert( tp == tp2 );
 	static_assert( tp2 == tp3 );
+	constexpr auto const tp4 = parse_javascript_timestamp( "2018-01-02T01:02:03.343Z" );
+	std::cout << "2018-01-02T01:02:03.343Z -> " << tp4 << '\n';
+	static_assert( tp4 == tp );
 	return EXIT_SUCCESS;
 }
