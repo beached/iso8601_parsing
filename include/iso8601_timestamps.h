@@ -197,4 +197,3 @@ namespace date {
 		return result;
 	}
 } // namespace date
-

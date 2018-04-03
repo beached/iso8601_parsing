@@ -25,6 +25,7 @@
 namespace date {
 	struct invalid_iso8601_timestamp {};
 	struct invalid_javascript_timestamp {};
+	struct insuffient_input {};
 
 	namespace details {
 		template<typename Result>
@@ -36,7 +37,21 @@ namespace date {
 		constexpr Result consume_unsigned( std::string_view &digit_str ) {
 			static_assert( count > 0, "Must consume at least one digit from string" );
 			if( digit_str.size( ) < count ) {
-				throw invalid_iso8601_timestamp{};
+				throw insuffient_input{};
+			}
+			auto result = to_integer<Result>( digit_str[0] );
+			for( size_t n = 1; n < count; ++n ) {
+				result *= 10;
+				result += to_integer<Result>( digit_str[n] );
+			}
+			digit_str.remove_prefix( count );
+			return result;
+		}
+
+		template<typename Result>
+		constexpr Result consume_unsigned( std::string_view &digit_str, size_t const count ) {
+			if( digit_str.size( ) < count ) {
+				throw insuffient_input{};
 			}
 			auto result = to_integer<Result>( digit_str[0] );
 			for( size_t n = 1; n < count; ++n ) {
@@ -58,6 +73,16 @@ namespace date {
 			return result;
 		}
 
+		template<typename Result, typename CharT, typename Traits>
+		constexpr Result parse_unsigned( std::basic_string_view<CharT, Traits> number_string ) noexcept {
+			auto result = 0;
+			for( size_t n = 0; n < number_string.size( ); ++n ) {
+				result *= 10;
+				result += to_integer<Result>( number_string[n] );
+			}
+			return result;
+		}
+
 		constexpr bool is_digit( char const c ) noexcept {
 			return '0' <= c && c <= '9';
 		}
@@ -71,4 +96,3 @@ namespace date {
 		}
 	} // namespace details
 } // namespace date
-

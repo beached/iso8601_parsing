@@ -34,7 +34,7 @@ int main( ) {
 	constexpr auto const tme = date::parse_iso8601_time( "01:02:03.343" );
 	std::cout << "01:02:03.343 -> " << tme << '\n';
 	constexpr auto const tme2 = date::parse_iso8601_time( "010203.343" );
-	std::cout << "010203.343 -> " << tme2<< '\n';
+	std::cout << "010203.343 -> " << tme2 << '\n';
 	static_assert( tme == tme2 );
 	constexpr auto const tp = date::parse_iso8601_timestamp( "2018-01-02T01:02:03.343Z" );
 	std::cout << "2018-01-02T01:02:03.343Z -> " << tp << '\n';
