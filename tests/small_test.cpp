@@ -39,8 +39,20 @@ constexpr auto testcx( std::string_view js_time ) {
 
 	auto const tp01 = date::parse_javascript_timestamp( js_time );
 	using namespace date::formats;
-	char * ptr = result.value;
+	char *ptr = result.value;
 	date::fmt( "{0}T{1}:{2}:{3}\n", tp01, ptr, YearMonthDay{}, Hour{}, Minute{}, Second{} );
+	return result;
+}
+
+constexpr auto testcx2( std::string_view js_time ) {
+	struct result_t {
+		char value[21];
+	} result{{0}};
+
+	auto const tp01 = date::parse_javascript_timestamp( js_time );
+	using namespace date::formats;
+	char *ptr = result.value;
+	date::fmt( "%C %D\n", tp01, ptr );
 	return result;
 }
 
@@ -48,15 +60,22 @@ int main( ) {
 	using namespace std::chrono;
 	using namespace date;
 
-	auto const tp01 = small_test( "2018-01-02T01:02:03.343Z" );
+	auto const tp01 = small_test( "2016-12-31T01:02:03.343Z" );
 	std::cout << "2018-01-02T01:02:03.343Z -> " << tp01 << '\n';
 
 	std::ostream_iterator<char> oi{std::cout};
 	using namespace date::formats;
+	std::cout << "fmt with format classes\n";
 	date::fmt( "{0}T{1}:{2}:{3}\n", tp01, oi, YearMonthDay{}, Hour{}, Minute{}, Second{} );
 
 	constexpr auto const date_str = testcx( "2018-01-02T01:02:04.343Z" );
 	std::cout << date_str.value;
+
+	std::cout << "fmt with format string\n";
+	constexpr auto const date_str2 = testcx2( "2018-01-02T13:02:04.343Z" );
+	std::cout << date_str2.value;
+	date::fmt( "%C %1C %2C %3C %4C %5C %d %1d %2d %3d %D %F %1F %2F %3F %4F %5F %I %H %j\n", tp01,
+	           std::ostream_iterator<char>{std::cout} );
 
 	return EXIT_SUCCESS;
 }

@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <daw/daw_string_view.h>
+
 namespace date {
 	struct invalid_iso8601_timestamp {};
 	struct invalid_javascript_timestamp {};
@@ -74,7 +76,7 @@ namespace date {
 		}
 
 		template<typename Result, typename CharT, typename Traits>
-		constexpr Result parse_unsigned( std::basic_string_view<CharT, Traits> number_string ) noexcept {
+		constexpr Result parse_unsigned( daw::basic_string_view<CharT, Traits> number_string ) noexcept {
 			auto result = 0;
 			for( size_t n = 0; n < number_string.size( ); ++n ) {
 				result *= 10;
