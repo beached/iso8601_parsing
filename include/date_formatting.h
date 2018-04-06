@@ -41,24 +41,27 @@ namespace date {
 				value = static_cast<T>( def_value );
 			}
 		}
+
+		template<typename OutputIterator, typename CharT>
+		constexpr void put_char( OutputIterator &oi, CharT c ) {
+			*oi++ = c;
+		}
 	} // namespace impl
 
 	namespace formats {
 		namespace impl {
 			template<typename OutputIterator>
 			constexpr void output_digit( char, OutputIterator &oi, uint8_t digit ) {
-				*oi = '0' + digit;
-				++oi;
+				date::impl::put_char( oi, '0' + digit );
 			}
 
 			template<typename OutputIterator>
 			constexpr void output_digit( wchar_t, OutputIterator &oi, uint8_t digit ) {
-				*oi = L'0' + digit;
-				++oi;
+				date::impl::put_char( oi, L'0' + digit );
 			}
 
-			template<typename Result>
-			constexpr Result pow10( size_t exponent ) noexcept {
+			template<typename Result, typename T>
+			constexpr Result pow10( T exponent ) noexcept {
 				Result result = 1;
 				while( exponent > 1 ) {
 					result *= 10;
@@ -67,8 +70,8 @@ namespace date {
 				return result;
 			}
 
-			template<typename Result>
-			constexpr Result log10( size_t n ) noexcept {
+			template<typename Result, typename T>
+			constexpr Result log10( T n ) noexcept {
 				Result result = 0;
 				while( n >= 10 ) {
 					++result;
@@ -136,8 +139,11 @@ namespace date {
 			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto mo =
 				  static_cast<int>( static_cast<unsigned>( date::year_month_day{date::floor<date::days>( tp )}.month( ) ) );
-				auto width = impl::format_width( field_width, mo );
-				impl::output_digits( CharT{}, width, oi, mo );
+				if( field_width == 0 ) {
+					impl::output_digits( CharT{}, 2, oi, mo - 1 );
+				} else {
+					impl::output_digits( CharT{}, 2, oi, mo );
+				}
 			}
 		};
 
@@ -156,12 +162,27 @@ namespace date {
 			}
 		};
 
-		template<typename CharT, size_t BuffSize, typename Duration, typename OutputIterator>
-		void localize( date::sys_time<Duration> const &tp, OutputIterator &oi, daw::string_view fmt ) {
+		template<typename Duration, typename OutputIterator>
+		void localize( char, date::sys_time<Duration> const &tp, OutputIterator &oi, daw::string_view fmt ) {
 			auto tmp = std::chrono::system_clock::to_time_t( tp );
-			std::array<char, BuffSize> buff = {0};
-			std::size_t result = 0;
-			result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+			std::vector<char> buff( static_cast<size_t>( 15 ) );
+			auto result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+			while( result == 0 ) {
+				buff.resize( buff.size( ) * 1.5 );
+				result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+			}
+			std::copy( buff.data( ), buff.data( ) + result, oi );
+		}
+
+		template<typename Duration, typename OutputIterator>
+		void localize( wchar_t, date::sys_time<Duration> const &tp, OutputIterator &oi, daw::wstring_view fmt ) {
+			auto tmp = std::chrono::system_clock::to_time_t( tp );
+			std::vector<wchar_t> buff( static_cast<size_t>( 15 ) );
+			auto result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+			while( result == 0 ) {
+				buff.resize( buff.size( ) * 1.5 );
+				result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+			}
 			std::copy( buff.data( ), buff.data( ) + result, oi );
 		}
 
@@ -174,9 +195,9 @@ namespace date {
 			template<typename Duration, typename OutputIterator>
 			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				if( locale_name_format == locale_name_formats::full ) {
-					localize<CharT, 100>( tp, oi, "%A" );
+					localize( CharT{}, tp, oi, "%A" );
 				} else {
-					localize<CharT, 100>( tp, oi, "%a" );
+					localize( CharT{}, tp, oi, "%a" );
 				}
 			}
 		};
@@ -188,9 +209,9 @@ namespace date {
 			template<typename Duration, typename OutputIterator>
 			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				if( locale_name_format == locale_name_formats::full ) {
-					localize<CharT, 100>( tp, oi, "%B" );
+					localize( CharT{}, tp, oi, "%B" );
 				} else {
-					localize<CharT, 100>( tp, oi, "%b" );
+					localize( CharT{}, tp, oi, "%b" );
 				}
 			}
 		};
@@ -199,7 +220,7 @@ namespace date {
 		struct LocaleDateTime {
 			template<typename Duration, typename OutputIterator>
 			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
-				localize<CharT, 100>( tp, oi, "%c" );
+				localize( CharT{}, tp, oi, "%c" );
 			}
 		};
 
@@ -290,11 +311,9 @@ namespace date {
 			template<typename Duration, typename OutputIterator>
 			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				Year<CharT, Traits>{}( tp, oi );
-				*oi = separator;
-				++oi;
+				date::impl::put_char( oi, separator );
 				Month<CharT, Traits>{}( tp, oi );
-				*oi = separator;
-				++oi;
+				date::impl::put_char( oi, separator );
 				Day<CharT, Traits>{}( tp, oi );
 			}
 		};
@@ -336,54 +355,29 @@ namespace date {
 			}
 			return oi;
 		}
-	} // namespace impl
-	template<typename CharT, typename Traits, typename OutputIterator, typename Duration, typename... FormatFlags>
-	constexpr auto fmt( daw::basic_string_view<CharT, Traits> fmt_str, date::sys_time<Duration> const &tp,
-	                    OutputIterator &oi, FormatFlags &&... flags )
-	  -> std::enable_if_t<( sizeof...( FormatFlags ) > 0 ), OutputIterator> {
 
-		auto pos_first = fmt_str.find_first_of( static_cast<CharT>( '{' ) );
-		while( pos_first != fmt_str.npos ) {
-			if( pos_first != 0 ) {
-				oi = impl::copy( fmt_str.cbegin( ), fmt_str.cbegin( ) + pos_first, oi );
-				fmt_str.remove_prefix( pos_first );
-			}
-			// TODO: deal with escaped { e.g /{
-
+		template<typename CharT, typename Traits, typename OutputIterator, typename Duration, typename... FormatFlags>
+		constexpr void process_brace( daw::basic_string_view<CharT, Traits> &fmt_str, date::sys_time<Duration> const &tp,
+		                              OutputIterator &oi, FormatFlags &&... flags ) {
+			fmt_str.remove_prefix( 1 );
 			auto const pos_last = fmt_str.find_first_of( static_cast<CharT>( '}' ) );
-			if( pos_last == fmt_str.npos || ( pos_last ) < 2 ) {
+			if( pos_last == fmt_str.npos || pos_last == 0 ) {
 				throw invalid_date_field{};
 			}
-			auto const idx = details::parse_unsigned<size_t>( fmt_str.substr( 1, pos_last - 1 ) );
+			auto const idx = details::parse_unsigned<size_t>( fmt_str.substr( 0, pos_last ) );
 			formats::get_string_value<CharT, Traits>( idx, tp, oi, std::forward<FormatFlags>( flags )... );
 			fmt_str.remove_prefix( pos_last );
-			if( !fmt_str.empty( ) ) {
-				fmt_str.remove_prefix( 1 );
-			}
-			pos_first = fmt_str.find_first_of( static_cast<CharT>( '{' ) );
 		}
-		if( !fmt_str.empty( ) ) {
-			oi = impl::copy( fmt_str.cbegin( ), fmt_str.cend( ), oi );
-		}
-		return oi;
-	}
 
-	// TODO: split into char/wchar_t versions
-	template<typename CharT, typename Traits, typename OutputIterator, typename Duration>
-	constexpr OutputIterator fmt( daw::basic_string_view<CharT, Traits> fmt_str, date::sys_time<Duration> const &tp,
-	                              OutputIterator &oi ) {
+		template<typename CharT, typename Traits, typename OutputIterator, typename Duration>
+		constexpr void process_percent( daw::basic_string_view<CharT, Traits> &fmt_str, date::sys_time<Duration> const &tp,
+		                                OutputIterator &oi ) {
 
-		auto pos_first = fmt_str.find_first_of( '%' );
-		while( !fmt_str.empty( ) && pos_first != fmt_str.npos ) {
-			if( pos_first != 0 ) {
-				oi = impl::copy( fmt_str.cbegin( ), fmt_str.cbegin( ) + pos_first, oi );
-				fmt_str.remove_prefix( pos_first );
-			}
-			if( fmt_str.empty( ) ) {
-				break;
-			}
 			fmt_str.remove_prefix( 1 );
 			int current_width = -1;
+			enum class locale_modifiers { none, E, O };
+			locale_modifiers locale_modifer{locale_modifiers::none};
+
 			if( details::is_digit( fmt_str.front( ) ) ) {
 				current_width = details::to_integer<int>( fmt_str.front( ) );
 				fmt_str.remove_prefix( 1 );
@@ -392,88 +386,103 @@ namespace date {
 					current_width = details::to_integer<int>( fmt_str.front( ) );
 					fmt_str.remove_prefix( 1 );
 				}
+			} else if( fmt_str.front( ) == 'E' ) {
+				locale_modifer = locale_modifiers::E;
+				fmt_str.remove_prefix( 1 );
+			} else if( fmt_str.front( ) == 'O' ) {
+				locale_modifer = locale_modifiers::O;
+				fmt_str.remove_prefix( 1 );
 			}
 			switch( fmt_str.front( ) ) {
 			case 'a':
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated}( tp, oi );
 				break;
 			case 'A':
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::full} );
+				formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::full}( tp, oi );
 				break;
 			case 'b':
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::MonthName<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				formats::MonthName<CharT, Traits>{formats::locale_name_formats::abbreviated}( tp, oi );
 				break;
 			case 'B':
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::MonthName<CharT, Traits>{formats::locale_name_formats::full} );
+				formats::MonthName<CharT, Traits>{formats::locale_name_formats::full}( tp, oi );
 				break;
 			case 'c':
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::LocaleDateTime<CharT, Traits>{} );
+				formats::LocaleDateTime<CharT, Traits>{}( tp, oi );
 				break;
 			case 'C':
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Century<CharT, Traits>{} );
+				formats::Century<CharT, Traits>{}( tp, oi );
+				break;
+			case 'D':
+				default_width( current_width, 2 );
+				formats::Year<CharT, Traits>{current_width}( tp, oi );
+				put_char( oi, '/' );
+				formats::Month<CharT, Traits>{current_width}( tp, oi );
+				put_char( oi, '/' );
+				formats::Day<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'd':
 			case 'e':
-				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{current_width} );
-				break;
-			case 'D':
-				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
-				*oi = '/';
-				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{current_width} );
-				*oi = '/';
-				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day<CharT, Traits>{current_width} );
+				formats::Month<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'F':
-				impl::default_width( current_width, 4 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
-				*oi = '-';
-				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{2} );
-				*oi = '-';
-				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day<CharT, Traits>{2} );
+				default_width( current_width, 4 );
+				formats::Year<CharT, Traits>{current_width}( tp, oi );
+				put_char( oi, '-' );
+				formats::Month<CharT, Traits>{2}( tp, oi );
+				put_char( oi, '-' );
+				formats::Day<CharT, Traits>{2}( tp, oi );
 				break;
 			case 'g':
 			case 'G':
 			case 'h':
 				throw unsupported_date_field{};
 			case 'H':
-				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Hour<CharT, Traits>{current_width} );
+				default_width( current_width, 2 );
+				formats::Hour<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'I':
-				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>(
-				  0, tp, oi, formats::Hour<CharT, Traits>{current_width, formats::hour_formats::twelve_hour} );
+				default_width( current_width, 2 );
+				formats::Hour<CharT, Traits>{current_width, formats::hour_formats::twelve_hour}( tp, oi );
 				break;
 			case 'j':
-				impl::default_width( current_width, 3 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day_of_Year<CharT, Traits>{current_width} );
+				default_width( current_width, 3 );
+				formats::Day_of_Year<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'm':
-				impl::default_width( current_width, 2 );
+				default_width( current_width, 2 );
 				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{current_width} );
 				break;
 			case 'M':
-				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Minute<CharT, Traits>{current_width} );
+				default_width( current_width, 2 );
+				formats::Minute<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'Y':
-				impl::default_width( current_width, 4 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
+				default_width( current_width, 4 );
+				formats::Year<CharT, Traits>{current_width}( tp, oi );
 				break;
 			default:
 				throw invalid_date_field{};
 			}
-			fmt_str.remove_prefix( 1 );
-			pos_first = fmt_str.find_first_of( '%' );
 		}
-		if( !fmt_str.empty( ) ) {
-			oi = impl::copy( fmt_str.cbegin( ), fmt_str.cend( ), oi );
+	} // namespace impl
+
+	template<typename CharT, typename Traits, typename OutputIterator, typename Duration, typename... Flags>
+	constexpr OutputIterator fmt( daw::basic_string_view<CharT, Traits> fmt_str, date::sys_time<Duration> const &tp,
+	                              OutputIterator &oi, Flags &&... flags ) {
+
+		while( !fmt_str.empty( ) ) {
+			switch( fmt_str.front( ) ) {
+			case '%':
+				impl::process_percent<CharT, Traits>( fmt_str, tp, oi );
+				break;
+			case '{':
+				impl::process_brace<CharT, Traits>( fmt_str, tp, oi, std::forward<Flags>( flags )... );
+				break;
+			default:
+				impl::put_char( oi, fmt_str.front( ) );
+				break;
+			}
+			fmt_str.remove_prefix( 1 );
 		}
 		return oi;
 	}
