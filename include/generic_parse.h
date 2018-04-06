@@ -22,8 +22,10 @@
 
 #pragma once
 
+#include <array>
 #include <chrono>
 #include <cstdint>
+#include <ctime>
 #include <date/date.h>
 #include <daw/daw_string_view.h>
 
@@ -106,31 +108,7 @@ namespace date {
 
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Year {
-			int field_width;
-
-			constexpr Year( ) noexcept
-			  : field_width{-1} {}
-
-			constexpr Year( int w ) noexcept
-			  : field_width{w} {}
-
-			constexpr Year( Year const &rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Year( Year &&rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Year &operator=( Year const &other ) noexcept {
-				field_width = other.field_width;
-				return *this;
-			}
-
-			constexpr Year &operator=( Year &&other ) noexcept {
-				field_width = std::move( other.field_width );
-				return *this;
-			}
-
-			~Year( ) noexcept = default;
+			int field_width = -1;
 
 			template<typename Duration, typename OutputIterator>
 			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
@@ -142,31 +120,7 @@ namespace date {
 
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Month {
-			int field_width;
-
-			constexpr Month( ) noexcept
-			  : field_width{-1} {}
-
-			constexpr Month( int w ) noexcept
-			  : field_width{w} {}
-
-			constexpr Month( Month const &rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Month( Month &&rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Month &operator=( Month const &other ) noexcept {
-				field_width = other.field_width;
-				return *this;
-			}
-
-			constexpr Month &operator=( Month &&other ) noexcept {
-				field_width = std::move( other.field_width );
-				return *this;
-			}
-
-			~Month( ) noexcept = default;
+			int field_width = -1;
 
 			template<typename Duration, typename OutputIterator>
 			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
@@ -181,31 +135,7 @@ namespace date {
 
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Day {
-			int field_width;
-
-			constexpr Day( ) noexcept
-			  : field_width{-1} {}
-
-			constexpr Day( int w ) noexcept
-			  : field_width{w} {}
-
-			constexpr Day( Day const &rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Day( Day &&rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Day &operator=( Day const &other ) noexcept {
-				field_width = other.field_width;
-				return *this;
-			}
-
-			constexpr Day &operator=( Day &&other ) noexcept {
-				field_width = std::move( other.field_width );
-				return *this;
-			}
-
-			~Day( ) noexcept = default;
+			int field_width = -1;
 
 			template<typename Duration, typename OutputIterator>
 			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
@@ -216,7 +146,52 @@ namespace date {
 			}
 		};
 
-		struct Day_of_Week;
+		template<typename CharT, size_t BuffSize, typename Duration, typename OutputIterator>
+		void localize( date::sys_time<Duration> const &tp, OutputIterator &oi, daw::string_view fmt ) {
+			auto tmp = std::chrono::system_clock::to_time_t( tp );
+			std::array<char, BuffSize> buff = {0};
+			std::size_t result = 0;
+			result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+			std::copy( buff.data( ), buff.data( ) + result, oi );
+		}
+
+		enum class locale_name_formats { abbreviated, full };
+
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
+		struct Day_of_Week {
+			locale_name_formats locale_name_format = locale_name_formats::full;
+
+			template<typename Duration, typename OutputIterator>
+			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+				if( locale_name_format == locale_name_formats::full ) {
+					localize<CharT, 100>( tp, oi, "%A" );
+				} else {
+					localize<CharT, 100>( tp, oi, "%a" );
+				}
+			}
+		};
+
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
+		struct MonthName {
+			locale_name_formats locale_name_format = locale_name_formats::full;
+
+			template<typename Duration, typename OutputIterator>
+			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+				if( locale_name_format == locale_name_formats::full ) {
+					localize<CharT, 100>( tp, oi, "%B" );
+				} else {
+					localize<CharT, 100>( tp, oi, "%b" );
+				}
+			}
+		};
+
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
+		struct LocaleDateTime {
+			template<typename Duration, typename OutputIterator>
+			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+				localize<CharT, 100>( tp, oi, "%c" );
+			}
+		};
 
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Day_of_Year {
@@ -410,11 +385,20 @@ namespace date {
 			}
 			switch( fmt_str.front( ) ) {
 			case 'a':
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				break;
 			case 'A':
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::full} );
+				break;
 			case 'b':
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::MonthName<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				break;
 			case 'B':
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::MonthName<CharT, Traits>{formats::locale_name_formats::full} );
+				break;
 			case 'c':
-				throw unsupported_date_field{};
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::LocaleDateTime<CharT, Traits>{} );
+				break;
 			case 'C':
 				impl::default_width( current_width, 2 );
 				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );

@@ -66,7 +66,7 @@ int main( ) {
 	std::ostream_iterator<char> oi{std::cout};
 	using namespace date::formats;
 	std::cout << "fmt with format classes\n";
-	date::fmt( "{0}T{1}:{2}:{3}\n", tp01, oi, YearMonthDay{}, Hour{}, Minute{}, Second{} );
+	date::fmt( "{0}T{1}:{2}:{3} DOW->{4}\n", tp01, oi, YearMonthDay{}, Hour{}, Minute{}, Second{}, Day_of_Week{} );
 
 	constexpr auto const date_str = testcx( "2018-01-02T01:02:04.343Z" );
 	std::cout << date_str.value;
@@ -74,7 +74,7 @@ int main( ) {
 	std::cout << "fmt with format string\n";
 	constexpr auto const date_str2 = testcx2( "2018-01-02T13:02:04.343Z" );
 	std::cout << date_str2.value;
-	date::fmt( "%C %1C %2C %3C %4C %5C %d %1d %2d %3d %D %F %1F %2F %3F %4F %5F %I %H %j\n", tp01,
+	date::fmt( "%C %1C %2C %3C %4C %5C %d %1d %2d %3d %D %F %1F %2F %3F %4F %5F %I %H %j %a %A %b %B %c\n", tp01,
 	           std::ostream_iterator<char>{std::cout} );
 
 	return EXIT_SUCCESS;
