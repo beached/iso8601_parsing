@@ -107,6 +107,16 @@ namespace date {
 		} // namespace impl
 
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
+		struct Century {
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+				auto yr = static_cast<int>( date::year_month_day{date::floor<date::days>( tp )}.year( ) );
+				yr /= 100;
+				impl::output_digits( CharT{}, 2, oi, yr );
+			}
+		};
+
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Year {
 			int field_width = -1;
 
@@ -400,8 +410,7 @@ namespace date {
 				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::LocaleDateTime<CharT, Traits>{} );
 				break;
 			case 'C':
-				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Century<CharT, Traits>{} );
 				break;
 			case 'd':
 			case 'e':
