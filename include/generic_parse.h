@@ -104,6 +104,7 @@ namespace date {
 			}
 		} // namespace impl
 
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Year {
 			int field_width;
 
@@ -131,14 +132,15 @@ namespace date {
 
 			~Year( ) noexcept = default;
 
-			template<typename CharT, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto yr = static_cast<int>( date::year_month_day{date::floor<date::days>( tp )}.year( ) );
 				auto width = impl::format_width( field_width, yr );
 				impl::output_digits( CharT{}, width, oi, yr );
 			}
 		};
 
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Month {
 			int field_width;
 
@@ -165,8 +167,9 @@ namespace date {
 			}
 
 			~Month( ) noexcept = default;
-			template<typename CharT, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto mo =
 				  static_cast<int>( static_cast<unsigned>( date::year_month_day{date::floor<date::days>( tp )}.month( ) ) );
 				auto width = impl::format_width( field_width, mo );
@@ -175,6 +178,8 @@ namespace date {
 		};
 
 		struct Month_Name;
+
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Day {
 			int field_width;
 
@@ -202,8 +207,8 @@ namespace date {
 
 			~Day( ) noexcept = default;
 
-			template<typename CharT, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto dy =
 				  static_cast<int>( static_cast<unsigned>( date::year_month_day{date::floor<date::days>( tp )}.day( ) ) );
 				auto width = impl::format_width( field_width, dy );
@@ -213,11 +218,12 @@ namespace date {
 
 		struct Day_of_Week;
 
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Day_of_Year {
 			int field_width = -1;
 
-			template<typename CharT, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto const ymd = year_month_day{date::floor<date::days>( tp )};
 				auto const jan1 = year_month_day{ymd.year( ) / 1 / 1};
 				auto diff = floor<days>( static_cast<sys_days>( ymd ) - static_cast<sys_days>( jan1 ) ).count( ) + 1;
@@ -226,10 +232,12 @@ namespace date {
 			}
 		};
 
+		enum class hour_formats { twelve_hour, twenty_four_hour };
+
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Hour {
-			enum hour_formats { twelve_hour_clock, twenty_four_hour_clock };
 			int field_width = -1;
-			hour_formats hour_format = twenty_four_hour_clock;
+			hour_formats hour_format = hour_formats::twenty_four_hour;
 
 			constexpr Hour( ) noexcept {}
 
@@ -240,12 +248,12 @@ namespace date {
 			  : field_width{w}
 			  , hour_format{format} {}
 
-			template<typename CharT, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto const dte = date::floor<date::days>( tp );
 				auto const tod = date::make_time( tp - dte );
 				auto hr = static_cast<int>( tod.hours( ).count( ) );
-				if( hour_format == twelve_hour_clock && hr >= 12 ) {
+				if( hour_format == hour_formats::twelve_hour && hr >= 12 ) {
 					hr -= 12;
 				}
 				auto width = impl::format_width( field_width, hr );
@@ -253,35 +261,12 @@ namespace date {
 			}
 		};
 
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Minute {
-			int field_width;
+			int field_width = -1;
 
-			constexpr Minute( ) noexcept
-			  : field_width{-1} {}
-
-			constexpr Minute( int w ) noexcept
-			  : field_width{w} {}
-
-			constexpr Minute( Minute const &rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Minute( Minute &&rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Minute &operator=( Minute const &other ) noexcept {
-				field_width = other.field_width;
-				return *this;
-			}
-
-			constexpr Minute &operator=( Minute &&other ) noexcept {
-				field_width = std::move( other.field_width );
-				return *this;
-			}
-
-			~Minute( ) noexcept = default;
-
-			template<typename CharT, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto const dte = date::floor<date::days>( tp );
 				auto const tod = date::make_time( tp - dte );
 				auto hr = static_cast<int>( tod.minutes( ).count( ) );
@@ -290,35 +275,12 @@ namespace date {
 			}
 		};
 
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Second {
-			int field_width;
+			int field_width = -1;
 
-			constexpr Second( ) noexcept
-			  : field_width{-1} {}
-
-			constexpr Second( int w ) noexcept
-			  : field_width{w} {}
-
-			constexpr Second( Second const &rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Second( Second &&rhs ) noexcept
-			  : field_width{rhs.field_width} {}
-
-			constexpr Second &operator=( Second const &other ) noexcept {
-				field_width = other.field_width;
-				return *this;
-			}
-
-			constexpr Second &operator=( Second &&other ) noexcept {
-				field_width = std::move( other.field_width );
-				return *this;
-			}
-
-			~Second( ) noexcept = default;
-
-			template<typename CharT, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
 				auto const dte = date::floor<date::days>( tp );
 				auto const tod = date::make_time( tp - dte );
 				auto hr = static_cast<int>( tod.seconds( ).count( ) );
@@ -336,36 +298,19 @@ namespace date {
 			}
 		} // namespace impl
 
-		template<typename CharT = char>
+		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct YearMonthDay {
-			CharT separator;
+			CharT separator = impl::default_separator( CharT{} );
 
-			constexpr YearMonthDay( ) noexcept
-			  : separator{impl::default_separator( CharT{} )} {}
-
-			constexpr YearMonthDay( CharT sep ) noexcept
-			  : separator{sep} {}
-
-			constexpr YearMonthDay( YearMonthDay const & ) noexcept = default;
-
-			constexpr YearMonthDay( YearMonthDay && ) noexcept = default;
-
-			constexpr YearMonthDay &operator=( YearMonthDay const & ) noexcept = default;
-
-			constexpr YearMonthDay &operator=( YearMonthDay && ) noexcept = default;
-
-			~YearMonthDay( ) noexcept = default;
-
-			template<typename CharT2, typename Traits, typename Duration, typename OutputIterator>
-			constexpr void view( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
-				static_assert( std::is_same_v<CharT, CharT2>, "CharT on class must match CharT2 on view method" );
-				Year{}.template view<CharT, Traits>( tp, oi );
+			template<typename Duration, typename OutputIterator>
+			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
+				Year<CharT, Traits>{}( tp, oi );
 				*oi = separator;
 				++oi;
-				Month{}.template view<CharT, Traits>( tp, oi );
+				Month<CharT, Traits>{}( tp, oi );
 				*oi = separator;
 				++oi;
-				Day{}.template view<CharT, Traits>( tp, oi );
+				Day<CharT, Traits>{}( tp, oi );
 			}
 		};
 
@@ -379,7 +324,7 @@ namespace date {
 			constexpr void get_string_value( size_t const n, date::sys_time<Duration> const &tp, OutputIterator &oi,
 			                                 Arg &&arg, Args &&... args ) {
 				if( index == n ) {
-					arg.template view<CharT, Traits>( tp, oi );
+					arg( tp, oi );
 				}
 				return get_string_value<index + 1, CharT, Traits>( n, tp, oi, std::forward<Args>( args )... );
 			}
@@ -472,32 +417,32 @@ namespace date {
 				throw unsupported_date_field{};
 			case 'C':
 				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
 				break;
 			case 'd':
 			case 'e':
 				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{current_width} );
 				break;
 			case 'D':
 				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
 				*oi = '/';
 				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{current_width} );
 				*oi = '/';
 				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day<CharT, Traits>{current_width} );
 				break;
 			case 'F':
 				impl::default_width( current_width, 4 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
 				*oi = '-';
 				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month{2} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{2} );
 				*oi = '-';
 				++oi;
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day{2} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day<CharT, Traits>{2} );
 				break;
 			case 'g':
 			case 'G':
@@ -505,28 +450,28 @@ namespace date {
 				throw unsupported_date_field{};
 			case 'H':
 				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Hour{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Hour<CharT, Traits>{current_width} );
 				break;
 			case 'I':
 				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi,
-				                                          formats::Hour{current_width, formats::Hour::twelve_hour_clock} );
+				formats::get_string_value<CharT, Traits>(
+				  0, tp, oi, formats::Hour<CharT, Traits>{current_width, formats::hour_formats::twelve_hour} );
 				break;
 			case 'j':
 				impl::default_width( current_width, 3 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day_of_Year{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Day_of_Year<CharT, Traits>{current_width} );
 				break;
 			case 'm':
 				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{current_width} );
 				break;
 			case 'M':
 				impl::default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Minute{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Minute<CharT, Traits>{current_width} );
 				break;
 			case 'Y':
 				impl::default_width( current_width, 4 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year{current_width} );
+				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Year<CharT, Traits>{current_width} );
 				break;
 			default:
 				throw invalid_date_field{};
