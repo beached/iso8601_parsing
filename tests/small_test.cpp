@@ -56,6 +56,22 @@ constexpr auto testcx2( std::string_view js_time ) {
 	return result;
 }
 
+auto test3( std::string_view js_time ) {
+	struct result_t {
+		char value[50];
+
+		constexpr operator char const *( ) const {
+			return value;
+		}
+	} result{{0}};
+
+	auto const tp01 = date::parse_javascript_timestamp( js_time );
+	using namespace date::formats;
+	char *ptr = result.value;
+	date::fmt( "%c {0}\n", tp01, ptr, Month{} );
+	return result;
+}
+
 int main( ) {
 	using namespace std::chrono;
 	using namespace date;
@@ -74,8 +90,11 @@ int main( ) {
 	std::cout << "fmt with format string\n";
 	constexpr auto const date_str2 = testcx2( "2018-01-02T13:02:04.343Z" );
 	std::cout << date_str2.value;
-	date::fmt( "%C %d %0d %e %0e %D %F %1F %2F %3F %4F %5F %I %H %j %a %A %b %B %c\n", tp01,
-	           std::ostream_iterator<char>{std::cout} );
+	setlocale( LC_ALL, "ja_JP" );
+	date::fmt( "%C %d %0d %e %0e %D year:'%Y %2Y %EY' %F %1F %2F %3F %4F %5F %I %H %j %a %A %b %B %c {0}\n", tp01,
+	           std::ostream_iterator<char>{std::cout}, []( ) { return " From lambda "; } );
 
+	std::cout << "test3\n";
+	std::cout << test3( "2018-01-02T13:02:04.343Z" );
 	return EXIT_SUCCESS;
 }

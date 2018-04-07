@@ -26,7 +26,12 @@
 #include <chrono>
 #include <cstdint>
 #include <ctime>
+#include <iterator>
+#include <string>
+#include <vector>
+
 #include <date/date.h>
+#include <daw/cpp_17.h>
 #include <daw/daw_string_view.h>
 
 #include "common.h"
@@ -107,6 +112,37 @@ namespace date {
 				++width; // Back to width in character count
 				return width;
 			}
+
+			template<typename Duration, typename OutputIterator>
+			void localize( char, date::sys_time<Duration> const &tp, OutputIterator &oi, daw::string_view fmt ) {
+				auto tmp = std::chrono::system_clock::to_time_t( tp );
+				// Using string because of SSO and that explains the 15 char size.
+				// The 30 increases is a WAG
+				std::string buff( static_cast<size_t>(15), '\0' );
+				auto result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+				while( result == 0 ) {
+					buff.resize( buff.size( ) + 30 );
+					result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+				}
+				oi = std::copy( buff.data( ), buff.data( ) + result, oi );
+			}
+
+			template<typename Duration, typename OutputIterator>
+			void localize( wchar_t, date::sys_time<Duration> const &tp, OutputIterator &oi, daw::wstring_view fmt ) {
+				auto tmp = std::chrono::system_clock::to_time_t( tp );
+				// Using string because of SSO and that explains the 7 wchar_t size.
+				// The 30 increases is a WAG
+				std::wstring buff( static_cast<size_t>(7), L'\0' );
+				auto result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+				while( result == 0 ) {
+					buff.resize( buff.size( ) + 30 );
+					result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
+				}
+				oi = std::copy( buff.data( ), buff.data( ) + result, oi );
+			}
+
+			enum class locale_name_formats { abbreviated, full, none, alternate };
+
 		} // namespace impl
 
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
@@ -122,12 +158,17 @@ namespace date {
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Year {
 			int field_width = -1;
+			impl::locale_name_formats locale_name_format = impl::locale_name_formats::none;
 
 			template<typename Duration, typename OutputIterator>
 			constexpr void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
-				auto yr = static_cast<int>( date::year_month_day{date::floor<date::days>( tp )}.year( ) );
-				auto width = impl::format_width( field_width, yr );
-				impl::output_digits( CharT{}, width, oi, yr );
+				if( locale_name_format == impl::locale_name_formats::alternate ) {
+					formats::impl::localize( CharT{}, tp, oi, "%EY" );
+				} else {
+					auto yr = static_cast<int>( date::year_month_day{ date::floor<date::days>( tp ) }.year( ) );
+					auto width = impl::format_width( field_width, yr );
+					impl::output_digits( CharT{ }, width, oi, yr );
+				}
 			}
 		};
 
@@ -147,8 +188,6 @@ namespace date {
 			}
 		};
 
-		struct Month_Name;
-
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Day {
 			int field_width = -1;
@@ -162,56 +201,30 @@ namespace date {
 			}
 		};
 
-		template<typename Duration, typename OutputIterator>
-		void localize( char, date::sys_time<Duration> const &tp, OutputIterator &oi, daw::string_view fmt ) {
-			auto tmp = std::chrono::system_clock::to_time_t( tp );
-			std::vector<char> buff( static_cast<size_t>( 15 ) );
-			auto result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
-			while( result == 0 ) {
-				buff.resize( buff.size( ) * 1.5 );
-				result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
-			}
-			std::copy( buff.data( ), buff.data( ) + result, oi );
-		}
-
-		template<typename Duration, typename OutputIterator>
-		void localize( wchar_t, date::sys_time<Duration> const &tp, OutputIterator &oi, daw::wstring_view fmt ) {
-			auto tmp = std::chrono::system_clock::to_time_t( tp );
-			std::vector<wchar_t> buff( static_cast<size_t>( 15 ) );
-			auto result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
-			while( result == 0 ) {
-				buff.resize( buff.size( ) * 1.5 );
-				result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &tmp ) );
-			}
-			std::copy( buff.data( ), buff.data( ) + result, oi );
-		}
-
-		enum class locale_name_formats { abbreviated, full };
-
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct Day_of_Week {
-			locale_name_formats locale_name_format = locale_name_formats::full;
+			impl::locale_name_formats locale_name_format = impl::locale_name_formats::full;
 
 			template<typename Duration, typename OutputIterator>
 			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
-				if( locale_name_format == locale_name_formats::full ) {
-					localize( CharT{}, tp, oi, "%A" );
+				if( locale_name_format == impl::locale_name_formats::full ) {
+					impl::localize( CharT{}, tp, oi, "%A" );
 				} else {
-					localize( CharT{}, tp, oi, "%a" );
+					impl::localize( CharT{}, tp, oi, "%a" );
 				}
 			}
 		};
 
 		template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 		struct MonthName {
-			locale_name_formats locale_name_format = locale_name_formats::full;
+			impl::locale_name_formats locale_name_format = impl::locale_name_formats::full;
 
 			template<typename Duration, typename OutputIterator>
 			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
-				if( locale_name_format == locale_name_formats::full ) {
-					localize( CharT{}, tp, oi, "%B" );
+				if( locale_name_format == impl::locale_name_formats::full ) {
+					impl::localize( CharT{}, tp, oi, "%B" );
 				} else {
-					localize( CharT{}, tp, oi, "%b" );
+					impl::localize( CharT{}, tp, oi, "%b" );
 				}
 			}
 		};
@@ -220,7 +233,7 @@ namespace date {
 		struct LocaleDateTime {
 			template<typename Duration, typename OutputIterator>
 			void operator( )( date::sys_time<Duration> const &tp, OutputIterator &oi ) const {
-				localize( CharT{}, tp, oi, "%c" );
+				impl::localize( CharT{}, tp, oi, "%c" );
 			}
 		};
 
@@ -320,6 +333,31 @@ namespace date {
 
 		// Get nth value from a parameter pack
 		namespace impl {
+			template<typename ForwardIterator, typename ForwardIteratorLast, typename OutputIterator>
+			constexpr OutputIterator copy( ForwardIterator first, ForwardIteratorLast last, OutputIterator oi ) {
+				while( first != last ) {
+					*oi = *first;
+					++oi;
+					++first;
+				}
+				return oi;
+			}
+
+			template<typename CharT, typename Traits, typename Duration, typename OutputIterator, typename Arg>
+			constexpr auto runarg( date::sys_time<Duration> const &tp, OutputIterator &oi, Arg &&arg )
+			  -> std::enable_if_t<daw::is_callable_v<Arg, date::sys_time<Duration> const &, OutputIterator>> {
+
+				arg( tp, oi );
+			}
+
+			template<typename CharT, typename Traits, typename Duration, typename OutputIterator, typename Arg>
+			auto runarg( date::sys_time<Duration> const &tp, OutputIterator &oi, Arg &&arg )
+			  -> std::enable_if_t<!daw::is_callable_v<Arg, date::sys_time<Duration> const &, OutputIterator>> {
+
+				std::basic_string<CharT, Traits> result = arg( );
+				oi = std::copy( result.cbegin( ), result.cend( ), oi );
+			}
+
 			template<size_t index, typename CharT, typename Traits, typename Duration, typename OutputIterator>
 			constexpr void get_string_value( size_t const, date::sys_time<Duration> const &, OutputIterator & ) noexcept {}
 
@@ -328,7 +366,7 @@ namespace date {
 			constexpr void get_string_value( size_t const n, date::sys_time<Duration> const &tp, OutputIterator &oi,
 			                                 Arg &&arg, Args &&... args ) {
 				if( index == n ) {
-					arg( tp, oi );
+					runarg<CharT, Traits>( tp, oi, std::forward<Arg>( arg ) );
 				}
 				return get_string_value<index + 1, CharT, Traits>( n, tp, oi, std::forward<Args>( args )... );
 			}
@@ -346,14 +384,34 @@ namespace date {
 	} // namespace formats
 
 	namespace impl {
-		template<typename ForwardIterator, typename ForwardIteratorLast, typename OutputIterator>
-		constexpr OutputIterator copy( ForwardIterator first, ForwardIteratorLast last, OutputIterator oi ) {
-			while( first != last ) {
-				*oi = *first;
-				++oi;
-				++first;
-			}
-			return oi;
+		template<typename OutputIterator>
+		constexpr void put_newline( char, OutputIterator &oi ) {
+			put_char( oi, '\n' );
+		}
+
+		template<typename OutputIterator>
+		constexpr void put_newline( wchar_t, OutputIterator &oi ) {
+			put_char( oi, L'\n' );
+		}
+
+			template<typename OutputIterator>
+		constexpr void put_percent( char, OutputIterator &oi ) {
+			put_char( oi, '%' );
+		}
+
+		template<typename OutputIterator>
+		constexpr void put_percent( wchar_t, OutputIterator &oi ) {
+			put_char( oi, L'%' );
+		}
+
+		template<typename OutputIterator>
+		constexpr void put_tab( char, OutputIterator &oi ) {
+			put_char( oi, '\t' );
+		}
+
+		template<typename OutputIterator>
+		constexpr void put_tab( wchar_t, OutputIterator &oi ) {
+			put_char( oi, L'\t' );
 		}
 
 		template<typename CharT, typename Traits, typename OutputIterator, typename Duration, typename... FormatFlags>
@@ -394,17 +452,20 @@ namespace date {
 				fmt_str.remove_prefix( 1 );
 			}
 			switch( fmt_str.front( ) ) {
+			case '%':
+				put_percent( CharT{}, oi );
+				break;
 			case 'a':
-				formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated}( tp, oi );
+				formats::Day_of_Week<CharT, Traits>{formats::impl::locale_name_formats::abbreviated}( tp, oi );
 				break;
 			case 'A':
-				formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::full}( tp, oi );
+				formats::Day_of_Week<CharT, Traits>{formats::impl::locale_name_formats::full}( tp, oi );
 				break;
 			case 'b':
-				formats::MonthName<CharT, Traits>{formats::locale_name_formats::abbreviated}( tp, oi );
+				formats::MonthName<CharT, Traits>{formats::impl::locale_name_formats::abbreviated}( tp, oi );
 				break;
 			case 'B':
-				formats::MonthName<CharT, Traits>{formats::locale_name_formats::full}( tp, oi );
+				formats::MonthName<CharT, Traits>{formats::impl::locale_name_formats::full}( tp, oi );
 				break;
 			case 'c':
 				formats::LocaleDateTime<CharT, Traits>{}( tp, oi );
@@ -414,15 +475,16 @@ namespace date {
 				break;
 			case 'D':
 				default_width( current_width, 2 );
-				formats::Year<CharT, Traits>{current_width}( tp, oi );
-				put_char( oi, '/' );
 				formats::Month<CharT, Traits>{current_width}( tp, oi );
 				put_char( oi, '/' );
 				formats::Day<CharT, Traits>{current_width}( tp, oi );
+				put_char( oi, '/' );
+				formats::Year<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'd':
 			case 'e':
-				formats::Month<CharT, Traits>{current_width}( tp, oi );
+				default_width( current_width, 2 );
+				formats::Day<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'F':
 				default_width( current_width, 4 );
@@ -450,15 +512,22 @@ namespace date {
 				break;
 			case 'm':
 				default_width( current_width, 2 );
-				formats::get_string_value<CharT, Traits>( 0, tp, oi, formats::Month<CharT, Traits>{current_width} );
+				formats::Month<CharT, Traits>{current_width}( tp, oi );
 				break;
 			case 'M':
 				default_width( current_width, 2 );
 				formats::Minute<CharT, Traits>{current_width}( tp, oi );
 				break;
+			case 'n':
+				put_newline( CharT{}, oi );
+			case 't':
+				put_tab( CharT{}, oi );
 			case 'Y':
-				default_width( current_width, 4 );
-				formats::Year<CharT, Traits>{current_width}( tp, oi );
+				if( locale_modifer == locale_modifiers::E ) {
+					formats::Year<CharT, Traits>{-1, formats::impl::locale_name_formats::alternate}( tp, oi );
+				} else {
+					formats::Year<CharT, Traits>{ current_width }( tp, oi );
+				}
 				break;
 			default:
 				throw invalid_date_field{};
@@ -468,7 +537,7 @@ namespace date {
 
 	template<typename CharT, typename Traits, typename OutputIterator, typename Duration, typename... Flags>
 	constexpr OutputIterator fmt( daw::basic_string_view<CharT, Traits> fmt_str, date::sys_time<Duration> const &tp,
-	                              OutputIterator &oi, Flags &&... flags ) {
+	                              OutputIterator oi, Flags &&... flags ) {
 
 		while( !fmt_str.empty( ) ) {
 			switch( fmt_str.front( ) ) {
@@ -492,6 +561,22 @@ namespace date {
 	                              FormatFlags &&... flags ) {
 
 		return fmt( daw::basic_string_view<CharT>{fmt_str, N}, tp, oi, flags... );
+	}
+
+	template<typename Duration>
+	std::string strftime( daw::string_view format_str, date::sys_time<Duration> const &tp ) {
+		std::string result{};
+		auto oi = std::back_inserter( result );
+		date::formats::impl::localize( char{}, tp, oi, format_str );
+		return result;
+	}
+
+	template<typename Duration>
+	std::wstring wcsftime( daw::wstring_view format_str, date::sys_time<Duration> const &tp ) {
+		std::wstring result{};
+		auto oi = std::back_inserter( result );
+		date::formats::impl::localize( wchar_t{}, tp, oi, format_str );
+		return result;
 	}
 
 } // namespace date
