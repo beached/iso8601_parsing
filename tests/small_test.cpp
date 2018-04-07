@@ -91,10 +91,12 @@ int main( ) {
 	constexpr auto const date_str2 = testcx2( "2018-01-02T13:02:04.343Z" );
 	std::cout << date_str2.value;
 	setlocale( LC_ALL, "ja_JP" );
-	date::fmt( "%C %d %0d %e %0e %D year:'%Y %2Y %EY' %F %1F %2F %3F %4F %5F %I %H %j %a %A %b %B %c {0}\n", tp01,
+	date::fmt( "%C %d %0d %e %0e %D year:'%Y %2Y %EY' %F %1F %2F %3F %4F %5F %I %H %j %a %A %b %B %c {0} %g %G\n", tp01,
 	           std::ostream_iterator<char>{std::cout}, []( ) { return " From lambda "; } );
 
 	std::cout << "test3\n";
 	std::cout << test3( "2018-01-02T13:02:04.343Z" );
+
+	std::cout << date::strftime( "strftime: %g %G\n", tp01 );
 	return EXIT_SUCCESS;
 }
