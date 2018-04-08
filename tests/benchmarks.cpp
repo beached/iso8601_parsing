@@ -31,8 +31,8 @@
 
 #include "date_parsing.h"
 
-date::sys_time<std::chrono::milliseconds> parse8601( daw::string_view ts ) {
-	std::istringstream in{ts.to_string( )};
+date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
+	std::istringstream in{ts};
 	date::sys_time<std::chrono::milliseconds> tp;
 	in >> date::parse( "%FT%TZ", tp );
 	if( in.fail( ) ) {
@@ -48,7 +48,7 @@ date::sys_time<std::chrono::milliseconds> parse8601( daw::string_view ts ) {
 	return tp;
 }
 
-date::sys_time<std::chrono::milliseconds> sscanf_parse8601( daw::string_view ts ) {
+date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &ts ) {
 	std::istringstream in{ts};
 	date::sys_time<std::chrono::milliseconds> tp;
 	int yr = 0;
@@ -59,7 +59,7 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( daw::string_view ts 
 	int sc = 0;
 	int ms = 0;
 
-	if( sscanf( ts.data( ), "%d-%d-%dT%d:%d:%d.%dZ", &yr, &mo, &dy, &hr, &mi, &sc, &ms ) != 7 ) {
+	if( sscanf( ts.c_str( ), "%d-%d-%dT%d:%d:%d.%dZ", &yr, &mo, &dy, &hr, &mi, &sc, &ms ) != 7 ) {
 		std::cerr << "Unknown timestamp format: " << ts << '\n';
 		throw invalid_iso8601_timestamp{};
 	}
@@ -72,7 +72,7 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( daw::string_view ts 
 }
 
 int main( int argc, char **argv ) {
-	auto const bench_iso8601_parser = []( std::vector<daw::string_view> const &timestamps ) {
+	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
 			result += date_parsing::parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
@@ -80,7 +80,7 @@ int main( int argc, char **argv ) {
 		return result;
 	};
 
-	auto const bench_iso8601_parser2 = []( std::vector<daw::string_view> const &timestamps ) {
+	auto const bench_iso8601_parser2 = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
 			result += parse8601( ts ).time_since_epoch( ).count( );
@@ -88,7 +88,7 @@ int main( int argc, char **argv ) {
 		return result;
 	};
 
-	auto const bench_iso8601_sscanf_parser = []( std::vector<daw::string_view> const &timestamps ) {
+	auto const bench_iso8601_sscanf_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
 			result += sscanf_parse8601( ts ).time_since_epoch( ).count( );
@@ -96,7 +96,7 @@ int main( int argc, char **argv ) {
 		return result;
 	};
 
-	auto const bench_javascript_parser = []( std::vector<daw::string_view> const &timestamps ) {
+	auto const bench_javascript_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
 			result += date_parsing::parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
@@ -111,11 +111,11 @@ int main( int argc, char **argv ) {
 		assert( mmf );
 		daw::string_view mmf_sv{mmf.data( ), mmf.size( )};
 
-		std::vector<daw::string_view> timestamps{};
+		std::vector<std::string> timestamps{};
 		while( !mmf_sv.empty( ) ) {
 			auto line = mmf_sv.pop_front( []( auto c ) { return c == '\n'; } );
 			if( !line.empty( ) ) {
-				timestamps.push_back( std::move( line ) );
+				timestamps.push_back( line.to_string( ) );
 			}
 		}
 
@@ -142,21 +142,21 @@ int main( int argc, char **argv ) {
 	}
 	{
 		std::cout << "Using Javascript Timestamp File: " << argv[2] << '\n';
-		daw::filesystem::memory_mapped_file_t<char> mmf( argv[1] );
+		daw::filesystem::memory_mapped_file_t<char> mmf( argv[2] );
 		assert( mmf );
 		daw::string_view mmf_sv{mmf.data( ), mmf.size( )};
 
-		std::vector<daw::string_view> timestamps{};
+		std::vector<std::string> timestamps{};
 
 		while( !mmf_sv.empty( ) ) {
 			auto line = mmf_sv.pop_front( []( auto c ) { return c == '\n'; } );
 			if( !line.empty( ) ) {
-				timestamps.push_back( std::move( line ) );
+				timestamps.push_back( line.to_string( ) );
 			}
 		}
 
 		std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
-		for( auto ts : timestamps ) {
+		for( auto const &ts : timestamps ) {
 			auto const r1 = date_parsing::parse_javascript_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			auto const r3 = sscanf_parse8601( ts );

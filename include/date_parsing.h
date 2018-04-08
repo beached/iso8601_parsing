@@ -176,6 +176,17 @@ namespace date_parsing {
 		result = result - std::chrono::minutes{ofst};
 		return result;
 	}
+	template<typename CharT, typename Traits>
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
+	parse_iso8601_timestamp( std::basic_string<CharT, Traits> const &timestamp_str ) {
+		return parse_iso8601_timestamp( daw::make_string_view( timestamp_str ) );
+	}
+
+	template<typename CharT, size_t N>
+	constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
+	parse_iso8601_timestamp( CharT const ( &timestamp_str )[N] ) {
+		return parse_iso8601_timestamp( daw::basic_string_view<CharT>{timestamp_str, N - 1} );
+	}
 
 	template<typename CharT, typename Traits>
 	constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
@@ -196,6 +207,12 @@ namespace date_parsing {
 		  std::chrono::minutes{mi} + std::chrono::seconds{sc} + std::chrono::milliseconds{ms}};
 
 		return result;
+	}
+
+	template<typename CharT, typename Traits>
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
+	parse_javascript_timestamp( std::basic_string<CharT, Traits> const &timestamp_str ) {
+		return parse_javascript_timestamp( daw::make_string_view( timestamp_str ) );
 	}
 
 	template<typename CharT, size_t N>

@@ -590,7 +590,7 @@ namespace date_formatting {
 	constexpr OutputIterator fmt( CharT const ( &fmt_str )[N], date::sys_time<Duration> const &tp, OutputIterator oi,
 	                              FormatFlags &&... flags ) {
 		auto state = impl::make_state( tp, oi );
-		return fmt( daw::basic_string_view<CharT>{fmt_str, N}, state, flags... );
+		return fmt( daw::basic_string_view<CharT>{fmt_str, N - 1}, state, flags... );
 	}
 
 	template<typename Duration, typename... FormatFlags>
@@ -611,7 +611,7 @@ namespace date_formatting {
 
 	template<typename CharT, size_t N, typename OutputIterator, typename Duration, typename... FormatFlags>
 	auto fmt_string( CharT const ( &fmt_str )[N], date::sys_time<Duration> const &tp, FormatFlags &&... flags ) {
-		return fmt_string( {fmt_str, N}, tp, std::forward<FormatFlags>( flags )... );
+		return fmt_string( {fmt_str, N - 1}, tp, std::forward<FormatFlags>( flags )... );
 	}
 
 	template<typename CharT, typename Traits, typename Duration, typename... FormatFlags>
@@ -629,7 +629,7 @@ namespace date_formatting {
 	                                               std::basic_ostream<CharT, Traits> &ostr, FormatFlags &&... flags ) {
 
 		auto state = impl::make_state( tp, std::ostream_iterator<CharT>{ostr} );
-		fmt( daw::basic_string_view<CharT, Traits>{format_str, N}, state, std::forward<FormatFlags>( flags )... );
+		fmt( daw::basic_string_view<CharT, Traits>{format_str, N - 1}, state, std::forward<FormatFlags>( flags )... );
 		return ostr;
 	}
 
