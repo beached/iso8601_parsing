@@ -24,9 +24,10 @@
 
 #include <daw/daw_string_view.h>
 
-namespace date {
-	struct invalid_iso8601_timestamp {};
-	struct invalid_javascript_timestamp {};
+struct invalid_iso8601_timestamp {};
+struct invalid_javascript_timestamp {};
+
+namespace daw {
 	struct insuffient_input {};
 
 	namespace details {
@@ -35,8 +36,8 @@ namespace date {
 			return static_cast<Result>( c - '0' );
 		}
 
-		template<typename Result, size_t count>
-		constexpr Result consume_unsigned( std::string_view &digit_str ) {
+		template<typename Result, size_t count, typename CharT, typename Traits>
+		constexpr Result consume_unsigned( daw::basic_string_view<CharT, Traits> &digit_str ) {
 			static_assert( count > 0, "Must consume at least one digit from string" );
 			if( digit_str.size( ) < count ) {
 				throw insuffient_input{};
@@ -50,8 +51,8 @@ namespace date {
 			return result;
 		}
 
-		template<typename Result>
-		constexpr Result consume_unsigned( std::string_view &digit_str, size_t const count ) {
+		template<typename Result, typename CharT, typename Traits>
+		constexpr Result consume_unsigned( daw::basic_string_view<CharT, Traits> &digit_str, size_t const count ) {
 			if( digit_str.size( ) < count ) {
 				throw insuffient_input{};
 			}
@@ -64,13 +65,11 @@ namespace date {
 			return result;
 		}
 
-		template<typename Result, size_t count>
-		constexpr Result parse_unsigned( char const *digit_str ) {
-			static_assert( count > 0, "Must consume at least one digit from string" );
-			auto result = to_integer<Result>( digit_str[0] );
-			for( size_t n = 1; n < count; ++n ) {
-				result *= 10;
-				result += to_integer<Result>( digit_str[n] );
+		template<typename Result, size_t count, typename CharT>
+		constexpr Result parse_unsigned( const CharT *digit_str ) noexcept {
+			Result result = 0;
+			for( size_t n = 0; n < count; ++n ) {
+				result = ( result << 1 ) + ( result << 3 ) + to_integer<Result>( digit_str[n] );
 			}
 			return result;
 		}
@@ -79,8 +78,7 @@ namespace date {
 		constexpr Result parse_unsigned( daw::basic_string_view<CharT, Traits> number_string ) noexcept {
 			auto result = 0;
 			for( size_t n = 0; n < number_string.size( ); ++n ) {
-				result *= 10;
-				result += to_integer<Result>( number_string[n] );
+				result = ( result << 1 ) + ( result << 3 ) + to_integer<Result>( number_string[n] );
 			}
 			return result;
 		}
@@ -89,12 +87,21 @@ namespace date {
 			return '0' <= c && c <= '9';
 		}
 
-		constexpr bool is_digit( std::string_view const &sv ) noexcept {
+		constexpr bool is_digit( wchar_t const c ) noexcept {
+			return L'0' <= c && c <= L'9';
+		}
+
+		template<typename CharT, typename Traits>
+		constexpr bool is_digit( daw::basic_string_view<CharT, Traits> const &sv ) noexcept {
 			return !sv.empty( ) && is_digit( sv.front( ) );
 		}
 
 		constexpr char to_lower( char const c ) noexcept {
-			return static_cast<char>( static_cast<unsigned char>( c ) | static_cast<unsigned char>( 0x32u ) );
+			return static_cast<char>( c | ' ' );
+		}
+
+		constexpr char to_lower( wchar_t const c ) noexcept {
+			return static_cast<wchar_t>( c | L' ' );
 		}
 	} // namespace details
-} // namespace date
+} // namespace daw

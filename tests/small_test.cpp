@@ -24,39 +24,41 @@
 #include <iostream>
 #include <iterator>
 
+#include <daw/daw_string_view.h>
+
 #include "date_formatting.h"
-#include "iso8601_timestamps.h"
+#include "date_parsing.h"
 
 extern std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
-small_test( std::string_view ts_str ) {
-	return date::parse_javascript_timestamp( ts_str );
+small_test( daw::string_view ts_str ) {
+	return date_parsing::parse_javascript_timestamp( ts_str );
 }
 
-constexpr auto testcx( std::string_view js_time ) {
+constexpr auto testcx( daw::string_view js_time ) {
 	struct result_t {
 		char value[21];
 	} result{{0}};
 
-	auto const tp01 = date::parse_javascript_timestamp( js_time );
-	using namespace date::formats;
+	auto const tp01 = date_parsing::parse_javascript_timestamp( js_time );
+	using namespace date_formatting::formats;
 	char *ptr = result.value;
-	date::fmt( "{0}T{1}:{2}:{3}\n", tp01, ptr, YearMonthDay{}, Hour{}, Minute{}, Second{} );
+	date_formatting::fmt( "{0}T{1}:{2}:{3}\n", tp01, ptr, YearMonthDay{}, Hour{}, Minute{}, Second{} );
 	return result;
 }
 
-constexpr auto testcx2( std::string_view js_time ) {
+constexpr auto testcx2( daw::string_view js_time ) {
 	struct result_t {
 		char value[21];
 	} result{{0}};
 
-	auto const tp01 = date::parse_javascript_timestamp( js_time );
-	using namespace date::formats;
+	auto const tp01 = date_parsing::parse_javascript_timestamp( js_time );
+	using namespace date_formatting::formats;
 	char *ptr = result.value;
-	date::fmt( "%C %D\n", tp01, ptr );
+	date_formatting::fmt( "%C %D\n", tp01, ptr );
 	return result;
 }
 
-auto test3( std::string_view js_time ) {
+auto test3( daw::string_view js_time ) {
 	struct result_t {
 		char value[50];
 
@@ -65,10 +67,10 @@ auto test3( std::string_view js_time ) {
 		}
 	} result{{0}};
 
-	auto const tp01 = date::parse_javascript_timestamp( js_time );
-	using namespace date::formats;
+	auto const tp01 = date_parsing::parse_javascript_timestamp( js_time );
+	using namespace date_formatting::formats;
 	char *ptr = result.value;
-	date::fmt( "%c {0}\n", tp01, ptr, Month{} );
+	date_formatting::fmt( "%c {0}\n", tp01, ptr, Month{} );
 	return result;
 }
 
@@ -80,9 +82,10 @@ int main( ) {
 	std::cout << "2018-01-02T01:02:03.343Z -> " << tp01 << '\n';
 
 	std::ostream_iterator<char> oi{std::cout};
-	using namespace date::formats;
+	using namespace date_formatting::formats;
 	std::cout << "fmt with format classes\n";
-	date::fmt( "{0}T{1}:{2}:{3} DOW->{4}\n", tp01, oi, YearMonthDay{}, Hour{}, Minute{}, Second{}, Day_of_Week{} );
+	date_formatting::fmt( "{0}T{1}:{2}:{3} DOW->{4}\n", tp01, oi, YearMonthDay{}, Hour{}, Minute{}, Second{},
+	                      Day_of_Week{} );
 
 	constexpr auto const date_str = testcx( "2018-01-02T01:02:04.343Z" );
 	std::cout << date_str.value;
@@ -91,12 +94,17 @@ int main( ) {
 	constexpr auto const date_str2 = testcx2( "2018-01-02T13:02:04.343Z" );
 	std::cout << date_str2.value;
 	setlocale( LC_ALL, "ja_JP" );
-	date::fmt( "%C %d %0d %e %0e %D year:'%Y %2Y %EY' %F %1F %2F %3F %4F %5F %I %H %j %a %A %b %B %c {0} %g %G\n", tp01,
-	           std::ostream_iterator<char>{std::cout}, []( ) { return " From lambda "; } );
+	date_formatting::fmt(
+	  "%C %d %0d %e %0e %D year:'%Y %2Y %EY' %F %1F %2F %3F %4F %5F %I %H %j %a %A %b %B %c {0} %g %G\n", tp01,
+	  std::ostream_iterator<char>{std::cout}, []( ) { return " From lambda "; } );
 
 	std::cout << "test3\n";
 	std::cout << test3( "2018-01-02T13:02:04.343Z" );
 
-	std::cout << date::strftime( "strftime: %g %G\n", tp01 );
+	std::cout << date_formatting::strftime( "strftime: %g %G\n", tp01 );
+
+	std::cout << "Streaming\n";
+
+	date_formatting::fmt_stream( "%C %D\n", tp01, std::cout );
 	return EXIT_SUCCESS;
 }

@@ -24,15 +24,15 @@
 #include <date/date.h>
 #include <fstream>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <daw/daw_benchmark.h>
+#include <daw/daw_memory_mapped_file.h>
 
-#include "iso8601_timestamps.h"
+#include "date_parsing.h"
 
-date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
-	std::istringstream in{ts};
+date::sys_time<std::chrono::milliseconds> parse8601( daw::string_view ts ) {
+	std::istringstream in{ts.to_string( )};
 	date::sys_time<std::chrono::milliseconds> tp;
 	in >> date::parse( "%FT%TZ", tp );
 	if( in.fail( ) ) {
@@ -42,13 +42,13 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 		in >> date::parse( "%FT%T%z", tp );
 		if( in.fail( ) ) {
 			std::cerr << "Unknown timestamp format: " << ts << '\n';
-			throw date::invalid_iso8601_timestamp{};
+			throw invalid_iso8601_timestamp{};
 		}
 	}
 	return tp;
 }
 
-date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &ts ) {
+date::sys_time<std::chrono::milliseconds> sscanf_parse8601( daw::string_view ts ) {
 	std::istringstream in{ts};
 	date::sys_time<std::chrono::milliseconds> tp;
 	int yr = 0;
@@ -59,9 +59,9 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &t
 	int sc = 0;
 	int ms = 0;
 
-	if( sscanf( ts.c_str( ), "%d-%d-%dT%d:%d:%d.%dZ", &yr, &mo, &dy, &hr, &mi, &sc, &ms ) != 7 ) {
+	if( sscanf( ts.data( ), "%d-%d-%dT%d:%d:%d.%dZ", &yr, &mo, &dy, &hr, &mi, &sc, &ms ) != 7 ) {
 		std::cerr << "Unknown timestamp format: " << ts << '\n';
-		throw date::invalid_iso8601_timestamp{};
+		throw invalid_iso8601_timestamp{};
 	}
 
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> result{
@@ -72,15 +72,15 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &t
 }
 
 int main( int argc, char **argv ) {
-	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
+	auto const bench_iso8601_parser = []( std::vector<daw::string_view> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += date::parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
+			result += date_parsing::parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
 
-	auto const bench_iso8601_parser2 = []( std::vector<std::string> const &timestamps ) {
+	auto const bench_iso8601_parser2 = []( std::vector<daw::string_view> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
 			result += parse8601( ts ).time_since_epoch( ).count( );
@@ -88,7 +88,7 @@ int main( int argc, char **argv ) {
 		return result;
 	};
 
-	auto const bench_iso8601_sscanf_parser = []( std::vector<std::string> const &timestamps ) {
+	auto const bench_iso8601_sscanf_parser = []( std::vector<daw::string_view> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
 			result += sscanf_parse8601( ts ).time_since_epoch( ).count( );
@@ -96,10 +96,10 @@ int main( int argc, char **argv ) {
 		return result;
 	};
 
-	auto const bench_javascript_parser = []( std::vector<std::string> const &timestamps ) {
+	auto const bench_javascript_parser = []( std::vector<daw::string_view> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += date::parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
+			result += date_parsing::parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
@@ -107,15 +107,21 @@ int main( int argc, char **argv ) {
 	assert( argc > 1 );
 	{
 		std::cout << "Using Timestamp File: " << argv[1] << '\n';
-		std::ifstream infile{argv[1]};
-		std::vector<std::string> timestamps{};
+		daw::filesystem::memory_mapped_file_t<char> mmf( argv[1] );
+		assert( mmf );
+		daw::string_view mmf_sv{mmf.data( ), mmf.size( )};
 
-		for( std::string line; getline( infile, line ); ) {
-			timestamps.push_back( line );
+		std::vector<daw::string_view> timestamps{};
+		while( !mmf_sv.empty( ) ) {
+			auto line = mmf_sv.pop_front( []( auto c ) { return c == '\n'; } );
+			if( !line.empty( ) ) {
+				timestamps.push_back( std::move( line ) );
+			}
 		}
+
 		std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
 		for( auto const &ts : timestamps ) {
-			auto const r1 = date::parse_iso8601_timestamp( ts );
+			auto const r1 = date_parsing::parse_iso8601_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
 				std::cout << "Difference while parsing " << ts << '\n';
@@ -136,16 +142,22 @@ int main( int argc, char **argv ) {
 	}
 	{
 		std::cout << "Using Javascript Timestamp File: " << argv[2] << '\n';
-		std::ifstream infile{argv[2]};
-		std::vector<std::string> timestamps{};
+		daw::filesystem::memory_mapped_file_t<char> mmf( argv[1] );
+		assert( mmf );
+		daw::string_view mmf_sv{mmf.data( ), mmf.size( )};
 
-		for( std::string line; getline( infile, line ); ) {
-			timestamps.push_back( line );
+		std::vector<daw::string_view> timestamps{};
+
+		while( !mmf_sv.empty( ) ) {
+			auto line = mmf_sv.pop_front( []( auto c ) { return c == '\n'; } );
+			if( !line.empty( ) ) {
+				timestamps.push_back( std::move( line ) );
+			}
 		}
 
 		std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
-		for( auto const &ts : timestamps ) {
-			auto const r1 = date::parse_javascript_timestamp( ts );
+		for( auto ts : timestamps ) {
+			auto const r1 = date_parsing::parse_javascript_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			auto const r3 = sscanf_parse8601( ts );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {

@@ -23,28 +23,28 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "iso8601_timestamps.h"
+#include "date_parsing.h"
 
 int main( ) {
 	using namespace std::chrono;
 	using namespace date;
 
-	constexpr auto const dte = date::parse_iso8601_date( "2018-01-02" );
+	constexpr auto const dte = date_parsing::parse_iso8601_date( "2018-01-02" );
 	std::cout << "2018-01-02 -> " << dte << '\n';
-	constexpr auto const tme = date::parse_iso8601_time( "01:02:03.343" );
+	constexpr auto const tme = date_parsing::parse_iso8601_time( "01:02:03.343" );
 	std::cout << "01:02:03.343 -> " << tme << '\n';
-	constexpr auto const tme2 = date::parse_iso8601_time( "010203.343" );
+	constexpr auto const tme2 = date_parsing::parse_iso8601_time( "010203.343" );
 	std::cout << "010203.343 -> " << tme2 << '\n';
 	static_assert( tme == tme2 );
-	constexpr auto const tp = date::parse_iso8601_timestamp( "2018-01-02T01:02:03.343Z" );
+	constexpr auto const tp = date_parsing::parse_iso8601_timestamp( "2018-01-02T01:02:03.343Z" );
 	std::cout << "2018-01-02T01:02:03.343Z -> " << tp << '\n';
-	constexpr auto const tp2 = date::parse_iso8601_timestamp( "2018-01-02T01:02:03.343+0000" );
+	constexpr auto const tp2 = date_parsing::parse_iso8601_timestamp( "2018-01-02T01:02:03.343+0000" );
 	std::cout << "2018-01-02T01:02:03.343+0000 ->" << tp2 << '\n';
-	constexpr auto const tp3 = date::parse_iso8601_timestamp( "20180102010203.343Z" );
+	constexpr auto const tp3 = date_parsing::parse_iso8601_timestamp( "20180102010203.343Z" );
 	std::cout << "2018-01-02T01:02:03.343Z ->" << tp3 << '\n';
 	static_assert( tp == tp2 );
 	static_assert( tp2 == tp3 );
-	constexpr auto const tp4 = date::parse_javascript_timestamp( "2018-01-02T01:02:03.343Z" );
+	constexpr auto const tp4 = date_parsing::parse_javascript_timestamp( "2018-01-02T01:02:03.343Z" );
 	std::cout << "2018-01-02T01:02:03.343Z -> " << tp4 << '\n';
 	static_assert( tp4 == tp );
 	return EXIT_SUCCESS;

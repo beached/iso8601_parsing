@@ -38,7 +38,7 @@
 
 #include "common.h"
 
-namespace date {
+namespace date_formatting {
 	struct invalid_date_field {};
 	struct unsupported_date_field {};
 
@@ -56,7 +56,6 @@ namespace date {
 		template<typename Duration>
 		constexpr auto get_tod( date::sys_time<Duration> const &tp ) noexcept {
 			auto const dte = date::floor<date::days>( tp );
-			auto const tod = date::make_time( tp - dte );
 			return date::make_time( tp - dte );
 		}
 
@@ -65,6 +64,7 @@ namespace date {
 			date::sys_time<Duration> tp;
 			OutputIterator oi;
 			date::year_month_day ymd;
+			time_t time;
 			mutable daw::static_optional<time_t> m_time;
 
 			using tod_t = decltype( get_tod( tp ) );
@@ -75,15 +75,8 @@ namespace date {
 			  : tp{std::move( t )}
 			  , oi{std::move( i )}
 			  , ymd{date::floor<date::days>( tp )}
-			  , tod{get_tod( tp )}
-				, m_time{} {}
-
-			time_t const & time( ) const noexcept {
-				if( m_time.empty( ) ) {
-					m_time = std::chrono::system_clock::to_time_t( tp );
-				}
-				return m_time.get( );
-			}
+			  , time{static_cast<time_t>( date::floor<std::chrono::seconds>( tp ).time_since_epoch( ).count( ) )}
+			  , tod{get_tod( tp )} {}
 		};
 
 		template<typename Duration, typename OutputIterator>
@@ -98,12 +91,12 @@ namespace date {
 
 		template<typename OutputIterator>
 		constexpr void output_digit( char, OutputIterator &oi, uint8_t digit ) {
-			date::impl::put_char( oi, '0' + digit );
+			date_formatting::impl::put_char( oi, '0' + digit );
 		}
 
 		template<typename OutputIterator>
 		constexpr void output_digit( wchar_t, OutputIterator &oi, uint8_t digit ) {
-			date::impl::put_char( oi, L'0' + digit );
+			date_formatting::impl::put_char( oi, L'0' + digit );
 		}
 
 		template<typename Result, typename T>
@@ -159,10 +152,10 @@ namespace date {
 			// Using string because of SSO and that explains the 15 char size.
 			// The 30 increases is a WAG
 			std::string buff( static_cast<size_t>( 15 ), '\0' );
-			auto result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time( ) ) );
+			auto result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time ) );
 			while( result == 0 ) {
 				buff.resize( buff.size( ) + 30 );
-				result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time( ) ) );
+				result = std::strftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time ) );
 			}
 			state.oi = std::copy( buff.data( ), buff.data( ) + result, state.oi );
 		}
@@ -172,10 +165,10 @@ namespace date {
 			// Using string because of SSO and that explains the 7 wchar_t size.
 			// The 30 increases is a WAG
 			std::wstring buff( static_cast<size_t>( 7 ), L'\0' );
-			auto result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time( ) ) );
+			auto result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time ) );
 			while( result == 0 ) {
 				buff.resize( buff.size( ) + 30 );
-				result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time( ) ) );
+				result = std::wcsftime( buff.data( ), buff.size( ), fmt.data( ), std::localtime( &state.time ) );
 			}
 			state.oi = std::copy( buff.data( ), buff.data( ) + result, state.oi );
 		}
@@ -231,7 +224,7 @@ namespace date {
 
 			template<typename State>
 			constexpr void operator( )( State &state ) const {
-				auto mo = static_cast<int>( static_cast<unsigned>(state.ymd.month( ) ) );
+				auto mo = static_cast<int>( static_cast<unsigned>( state.ymd.month( ) ) );
 				if( field_width == 0 ) {
 					impl::output_digits( CharT{}, 2, state.oi, mo - 1 );
 				} else {
@@ -246,9 +239,9 @@ namespace date {
 
 			template<typename State>
 			constexpr void operator( )( State &state ) const {
-				auto dy = static_cast<int>( static_cast<unsigned>(state.ymd.day( ) ) );
+				auto dy = static_cast<int>( static_cast<unsigned>( state.ymd.day( ) ) );
 				auto width = impl::format_width( field_width, dy );
-				impl::output_digits( CharT{}, field_width, state.oi, dy );
+				impl::output_digits( CharT{}, width, state.oi, dy );
 			}
 		};
 
@@ -295,7 +288,10 @@ namespace date {
 			template<typename State>
 			constexpr void operator( )( State &state ) const {
 				auto const jan1 = state.ymd.year( ) / 1 / 1;
-				auto diff = floor<days>( static_cast<sys_days>( state.ymd ) - static_cast<sys_days>( jan1 ) ).count( ) + 1;
+				auto diff = std::chrono::floor<date::days>( static_cast<date::sys_days>( state.ymd ) -
+				                                            static_cast<date::sys_days>( jan1 ) )
+				              .count( ) +
+				            1;
 				auto width = impl::format_width( field_width, diff );
 				impl::output_digits( CharT{}, width, state.oi, diff );
 			}
@@ -368,9 +364,9 @@ namespace date {
 			template<typename State>
 			constexpr void operator( )( State &state ) const {
 				Year<CharT, Traits>{}( state );
-				date::impl::put_char( state.oi, separator );
+				date_formatting::impl::put_char( state.oi, separator );
 				Month<CharT, Traits>{}( state );
-				date::impl::put_char( state.oi, separator );
+				date_formatting::impl::put_char( state.oi, separator );
 				Day<CharT, Traits>{}( state );
 			}
 		};
@@ -456,7 +452,7 @@ namespace date {
 			if( pos_last == fmt_str.npos || pos_last == 0 ) {
 				throw invalid_date_field{};
 			}
-			auto const idx = details::parse_unsigned<size_t>( fmt_str.substr( 0, pos_last ) );
+			auto const idx = daw::details::parse_unsigned<size_t>( fmt_str.substr( 0, pos_last ) );
 			formats::get_string_value<CharT, Traits>( idx, state, std::forward<FormatFlags>( flags )... );
 			fmt_str.remove_prefix( pos_last );
 		}
@@ -468,12 +464,12 @@ namespace date {
 			enum class locale_modifiers { none, E, O };
 			locale_modifiers locale_modifer{locale_modifiers::none};
 
-			if( details::is_digit( fmt_str.front( ) ) ) {
-				current_width = details::to_integer<int>( fmt_str.front( ) );
+			if( daw::details::is_digit( fmt_str.front( ) ) ) {
+				current_width = daw::details::to_integer<int>( fmt_str.front( ) );
 				fmt_str.remove_prefix( 1 );
-				while( details::is_digit( fmt_str.front( ) ) ) {
+				while( daw::details::is_digit( fmt_str.front( ) ) ) {
 					current_width *= 10;
-					current_width = details::to_integer<int>( fmt_str.front( ) );
+					current_width = daw::details::to_integer<int>( fmt_str.front( ) );
 					fmt_str.remove_prefix( 1 );
 				}
 			} else if( fmt_str.front( ) == 'E' ) {
@@ -598,7 +594,7 @@ namespace date {
 	}
 
 	template<typename Duration, typename... FormatFlags>
-	std::string fmtstring( daw::string_view format_str, date::sys_time<Duration> const &tp, FormatFlags &&... flags ) {
+	std::string fmt_string( daw::string_view format_str, date::sys_time<Duration> const &tp, FormatFlags &&... flags ) {
 		std::string result{};
 		auto state = impl::make_state( tp, std::back_inserter( result ) );
 		fmt( format_str, state, std::forward<FormatFlags>( flags )... );
@@ -606,7 +602,7 @@ namespace date {
 	}
 
 	template<typename Duration, typename... FormatFlags>
-	std::wstring fmtstring( daw::wstring_view format_str, date::sys_time<Duration> const &tp, FormatFlags &&... flags ) {
+	std::wstring fmt_string( daw::wstring_view format_str, date::sys_time<Duration> const &tp, FormatFlags &&... flags ) {
 		std::wstring result{};
 		auto state = impl::make_state( tp, std::back_inserter( result ) );
 		fmt( format_str, state, std::forward<FormatFlags>( flags )... );
@@ -614,8 +610,27 @@ namespace date {
 	}
 
 	template<typename CharT, size_t N, typename OutputIterator, typename Duration, typename... FormatFlags>
-	auto fmtstring( CharT const ( &fmt_str )[N], date::sys_time<Duration> const &tp, FormatFlags &&... flags ) {
-		return fmtstring( {fmt_str, N}, tp, std::forward<FormatFlags>( flags )... );
+	auto fmt_string( CharT const ( &fmt_str )[N], date::sys_time<Duration> const &tp, FormatFlags &&... flags ) {
+		return fmt_string( {fmt_str, N}, tp, std::forward<FormatFlags>( flags )... );
+	}
+
+	template<typename CharT, typename Traits, typename Duration, typename... FormatFlags>
+	std::basic_ostream<CharT, Traits> &fmt_stream( daw::basic_string_view<CharT, Traits> format_str,
+	                                               date::sys_time<Duration> const &tp,
+	                                               std::basic_ostream<CharT, Traits> &ostr, FormatFlags &&... flags ) {
+
+		auto state = impl::make_state( tp, std::ostream_iterator<CharT>{ostr} );
+		fmt( format_str, state, std::forward<FormatFlags>( flags )... );
+		return ostr;
+	}
+
+	template<typename CharT, size_t N, typename Traits, typename Duration, typename... FormatFlags>
+	std::basic_ostream<CharT, Traits> &fmt_stream( CharT const ( &format_str )[N], date::sys_time<Duration> const &tp,
+	                                               std::basic_ostream<CharT, Traits> &ostr, FormatFlags &&... flags ) {
+
+		auto state = impl::make_state( tp, std::ostream_iterator<CharT>{ostr} );
+		fmt( daw::basic_string_view<CharT, Traits>{format_str, N}, state, std::forward<FormatFlags>( flags )... );
+		return ostr;
 	}
 
 	template<typename Duration>
@@ -634,4 +649,4 @@ namespace date {
 		return result;
 	}
 
-} // namespace date
+} // namespace date_formatting
