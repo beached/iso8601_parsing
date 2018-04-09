@@ -19,7 +19,7 @@ include_directories( ${HEADER_FOLDER} )
 set( HEADER_FILES
 		${HEADER_FOLDER}/common.h
 		${HEADER_FOLDER}/date_formatting.h
-		${HEADER_FOLDER}/iso8601_timestamps.h
+		${HEADER_FOLDER}/date_parsing.h
 )
 
 set( SOURCE_FILES
