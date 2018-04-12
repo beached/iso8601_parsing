@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#define ONLY_C_LOCALE 1
+
 #include <cstdlib>
 #include <date/date.h>
 #include <fstream>
@@ -72,6 +74,7 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &t
 }
 
 int main( int argc, char **argv ) {
+	std::ios::sync_with_stdio( false );
 	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {

@@ -32,8 +32,12 @@
 #include <vector>
 
 #include <date/date.h>
+#include <mpark/variant.hpp>
+
 #include <daw/cpp_17.h>
+#include <daw/daw_fixed_stack.h>
 #include <daw/daw_static_optional.h>
+#include <daw/daw_static_string.h>
 #include <daw/daw_string_view.h>
 
 #include "common.h"
@@ -371,6 +375,20 @@ namespace date_formatting {
 			}
 		};
 
+		template<typename CharT, typename Traits, size_t MaxLen = 100>
+		struct MonthDayYear {
+			int field_width = -1;
+			CharT separator = '/';
+
+			template<typename State>
+			constexpr void operator( )( State &state ) const {
+				Month<CharT, Traits>{field_width}( state );
+				::date_formatting::impl::put_char( state.oi, separator );
+				Day<CharT, Traits>{field_width}( state );
+				::date_formatting::impl::put_char( state.oi, separator );
+				Year<CharT, Traits>{field_width}( state );
+			}
+		};
 		// Get nth value from a parameter pack
 		namespace impl {
 			template<typename CharT, typename Traits, typename State, typename Arg>
@@ -649,4 +667,236 @@ namespace date_formatting {
 		return result;
 	}
 
+	namespace impl {
+		template<typename CharT, size_t MaxLen>
+		struct StringData {
+			daw::basic_static_string<CharT, MaxLen> data;
+
+			template<typename State>
+			constexpr void operator( )( State &state ) const {
+				impl::copy( data.cbegin( ), data.cend( ), state.oi );
+			}
+		};
+
+		constexpr bool is_escape_symbol( char value ) noexcept {
+			return value == '%' || value == '{';
+		}
+
+		constexpr bool is_escape_symbol( wchar_t value ) noexcept {
+			return value == L'%' || value == L'{';
+		}
+
+		template<typename CharT, size_t MaxLen>
+		constexpr daw::basic_static_string<CharT, MaxLen> parse_string( daw::string_view &fmt_str ) noexcept {
+			daw::basic_static_string<CharT, MaxLen> result{};
+			while( !fmt_str.empty( ) && result.has_room( 1 ) ) {
+				if( is_escape_symbol( fmt_str.front( ) ) ) {
+					break;
+				}
+				result.push_back( fmt_str.front( ) );
+				fmt_str.remove_prefix( 1 );
+			}
+			return result;
+		}
+
+		template<typename CharT, typename Traits>
+		struct IndexedFlag {
+			size_t index = 0;
+
+			template<typename State, typename... FormatFlags>
+			constexpr void operator( )( State &state, FormatFlags &&... flags ) const {
+				formats::get_string_value<CharT, Traits>( index, state, std::forward<FormatFlags>( flags )... );
+			}
+		};
+
+		template<typename CharT, typename Traits>
+		constexpr IndexedFlag<CharT, Traits> process_brace2( daw::basic_string_view<CharT, Traits> &fmt_str ) {
+			fmt_str.remove_prefix( 1 );
+			auto const pos_last = fmt_str.find_first_of( static_cast<CharT>( '}' ) );
+			if( pos_last == fmt_str.npos || pos_last == 0 ) {
+				throw invalid_date_field{};
+			}
+			auto const idx = daw::details::parse_unsigned<size_t>( fmt_str.substr( 0, pos_last ) );
+			fmt_str.remove_prefix( pos_last );
+			return IndexedFlag<CharT, Traits>{idx};
+		}
+
+		template<size_t MaxLen, typename Result, typename CharT, typename Traits>
+		constexpr void process_percent2( daw::basic_string_view<CharT, Traits> &fmt_str, Result &result ) {
+			fmt_str.remove_prefix( 1 );
+			int current_width = -1;
+			enum class locale_modifiers { none, E, O };
+			locale_modifiers locale_modifer{locale_modifiers::none};
+
+			if( daw::details::is_digit( fmt_str.front( ) ) ) {
+				current_width = daw::details::to_integer<int>( fmt_str.front( ) );
+				fmt_str.remove_prefix( 1 );
+				while( daw::details::is_digit( fmt_str.front( ) ) ) {
+					current_width *= 10;
+					current_width = daw::details::to_integer<int>( fmt_str.front( ) );
+					fmt_str.remove_prefix( 1 );
+				}
+			} else if( fmt_str.front( ) == 'E' ) {
+				locale_modifer = locale_modifiers::E;
+				fmt_str.remove_prefix( 1 );
+			} else if( fmt_str.front( ) == 'O' ) {
+				locale_modifer = locale_modifiers::O;
+				fmt_str.remove_prefix( 1 );
+			}
+			switch( fmt_str.front( ) ) {
+			case '%':
+				result.template emplace<StringData<CharT, MaxLen>>(
+				  StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"%"}} );
+				break;
+			case 'a':
+				result.template emplace<formats::Day_of_Week<CharT, Traits>>(
+				  formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				break;
+			case 'A':
+				result.template emplace<formats::Day_of_Week<CharT, Traits>>(
+				  formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::full} );
+				break;
+			case 'b':
+			case 'h':
+				result.template emplace<formats::MonthName<CharT, Traits>>(
+				  formats::MonthName<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				break;
+			case 'B':
+				result.template emplace<formats::MonthName<CharT, Traits>>(
+				  formats::MonthName<CharT, Traits>{formats::locale_name_formats::full} );
+				break;
+			case 'c':
+				result.template emplace<formats::LocaleDateTime<CharT, Traits>>( formats::LocaleDateTime<CharT, Traits>{} );
+				break;
+			case 'C':
+				result.template emplace<formats::Century<CharT, Traits>>( formats::Century<CharT, Traits>{} );
+				break;
+			case 'D':
+				default_width( current_width, 2 );
+				result.template emplace<formats::MonthDayYear<CharT, Traits, MaxLen>>(
+				  formats::MonthDayYear<CharT, Traits, MaxLen>{current_width} );
+				break;
+			case 'd':
+			case 'e':
+				default_width( current_width, 2 );
+				result.template emplace<formats::Day<CharT, Traits>>( formats::Day<CharT, Traits>{current_width} );
+				break;
+			case 'F':
+				result.template emplace<formats::YearMonthDay<CharT, Traits>>( formats::YearMonthDay<CharT, Traits>{'-'} );
+				break;
+			case 'g':
+				result.template emplace<formats::ISOWeekBasedYear<CharT, Traits>>( formats::ISOWeekBasedYear<CharT, Traits>{} );
+				break;
+			case 'G':
+				result.template emplace<formats::ISOWeekBasedYear<CharT, Traits>>(
+				  formats::ISOWeekBasedYear<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				break;
+			case 'H':
+				default_width( current_width, 2 );
+				result.template emplace<formats::Hour<CharT, Traits>>( formats::Hour<CharT, Traits>{current_width} );
+				break;
+			case 'I':
+				default_width( current_width, 2 );
+				result.template emplace<formats::Hour<CharT, Traits>>(
+				  formats::Hour<CharT, Traits>{current_width, formats::hour_formats::twelve_hour} );
+				break;
+			case 'j':
+				default_width( current_width, 3 );
+				result.template emplace<formats::Day_of_Year<CharT, Traits>>(
+				  formats::Day_of_Year<CharT, Traits>{current_width} );
+				break;
+			case 'm':
+				default_width( current_width, 2 );
+				result.template emplace<formats::Month<CharT, Traits>>( formats::Month<CharT, Traits>{current_width} );
+				break;
+			case 'M':
+				default_width( current_width, 2 );
+				result.template emplace<formats::Minute<CharT, Traits>>( formats::Minute<CharT, Traits>{current_width} );
+				break;
+			case 'n':
+				result.template emplace<StringData<CharT, MaxLen>>(
+				  StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\n"}} );
+				break;
+			case 't':
+				result.template emplace<StringData<CharT, MaxLen>>(
+				  StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\t"}} );
+				break;
+			case 'Y':
+				if( locale_modifer == locale_modifiers::E ) {
+					result.template emplace<formats::Year<CharT, Traits>>(
+					  formats::Year<CharT, Traits>{-1, formats::locale_name_formats::alternate} );
+				} else {
+					result.template emplace<formats::Year<CharT, Traits>>( formats::Year<CharT, Traits>{current_width} );
+				}
+				break;
+			default:
+				throw invalid_date_field{};
+			}
+			fmt_str.remove_prefix( 1 );
+		}
+
+		template<typename CharT, typename Traits, typename... Args>
+		struct fmt_visitor {
+			mutable std::tuple<Args...> args;
+
+			template<typename T>
+			constexpr void operator( )( T const &obj ) const {
+				obj( std::get<0>( args ) );
+			}
+
+			constexpr void operator( )( IndexedFlag<CharT, Traits> const &t ) const {
+				std::apply( t, args );
+			}
+		};
+
+		template<typename CharT, typename Traits, typename... Args>
+		constexpr auto make_fmt_visitor( Args &&... args ) {
+			return fmt_visitor<CharT, Traits, Args...>{std::forward_as_tuple( std::forward<Args>( args )... )};
+		}
+	} // namespace impl
+
+	template<typename CharT, typename Traits = std::char_traits<CharT>, size_t MaxStringLen = 100>
+	struct date_formatter_t {
+		using fixed_string = daw::basic_static_string<CharT, MaxStringLen>;
+		using fmt_types = mpark::variant<
+		  formats::Century<CharT, Traits>, formats::Year<CharT, Traits>, formats::ISOWeekBasedYear<CharT, Traits>,
+		  formats::Month<CharT, Traits>, formats::Day<CharT, Traits>, formats::Day_of_Week<CharT, Traits>,
+		  formats::MonthName<CharT, Traits>, formats::LocaleDateTime<CharT, Traits>, formats::Day_of_Year<CharT, Traits>,
+		  formats::Hour<CharT, Traits>, formats::Minute<CharT, Traits>, formats::Second<CharT, Traits>,
+		  formats::YearMonthDay<CharT, Traits>, impl::StringData<CharT, MaxStringLen>, impl::IndexedFlag<CharT, Traits>,
+		  formats::MonthDayYear<CharT, Traits, MaxStringLen>>;
+
+		std::array<fmt_types, 100> formatters{};
+		size_t pos = 0;
+
+		constexpr date_formatter_t( daw::basic_string_view<CharT, Traits> fmt_str ) {
+
+			while( !fmt_str.empty( ) ) {
+				switch( fmt_str.front( ) ) {
+				case '%':
+					impl::process_percent2<MaxStringLen>( fmt_str, formatters[pos++] );
+					break;
+				case '{': {
+					formatters[pos++].template emplace<impl::IndexedFlag<CharT, Traits>>( impl::process_brace2( fmt_str ) );
+				} break;
+				default:
+					formatters[pos++].template emplace<impl::StringData<CharT, MaxStringLen>>(
+					  impl::StringData<CharT, MaxStringLen>{impl::parse_string<CharT, MaxStringLen>( fmt_str )} );
+					break;
+				}
+				fmt_str.remove_prefix( 1 );
+			}
+		}
+
+		template<typename Duration, typename OutputIterator, typename... FormatFlags>
+		constexpr OutputIterator operator( )( date::sys_time<Duration> const &tp, OutputIterator oi,
+		                                      FormatFlags &&... flags ) const {
+			auto state = impl::make_state( tp, oi );
+			for( size_t n = 0; n < pos; ++n ) {
+				mpark::visit( impl::make_fmt_visitor<CharT, Traits>( state, std::forward<FormatFlags>( flags )... ),
+				              formatters[n] );
+			}
+			return state.oi;
+		}
+	};
 } // namespace date_formatting
