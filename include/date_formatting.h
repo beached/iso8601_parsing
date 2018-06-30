@@ -32,13 +32,13 @@
 #include <vector>
 
 #include <date/date.h>
-#include <mpark/variant.hpp>
 
 #include <daw/cpp_17.h>
 #include <daw/daw_fixed_stack.h>
 #include <daw/daw_static_optional.h>
 #include <daw/daw_static_string.h>
 #include <daw/daw_string_view.h>
+#include <daw/daw_utility.h>
 
 #include "common.h"
 
@@ -745,88 +745,76 @@ namespace date_formatting {
 			}
 			switch( fmt_str.front( ) ) {
 			case '%':
-				result.template emplace<StringData<CharT, MaxLen>>(
-				  StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"%"}} );
+				result = StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"%"}};
 				break;
 			case 'a':
-				result.template emplace<formats::Day_of_Week<CharT, Traits>>(
-				  formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				result = formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated};
 				break;
 			case 'A':
-				result.template emplace<formats::Day_of_Week<CharT, Traits>>(
-				  formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::full} );
+				result = formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::full};
 				break;
 			case 'b':
 			case 'h':
-				result.template emplace<formats::MonthName<CharT, Traits>>(
-				  formats::MonthName<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				result = formats::MonthName<CharT, Traits>{formats::locale_name_formats::abbreviated};
 				break;
 			case 'B':
-				result.template emplace<formats::MonthName<CharT, Traits>>(
-				  formats::MonthName<CharT, Traits>{formats::locale_name_formats::full} );
+				result = formats::MonthName<CharT, Traits>{formats::locale_name_formats::full};
 				break;
 			case 'c':
-				result.template emplace<formats::LocaleDateTime<CharT, Traits>>( formats::LocaleDateTime<CharT, Traits>{} );
+				result = formats::LocaleDateTime<CharT, Traits>{};
 				break;
 			case 'C':
-				result.template emplace<formats::Century<CharT, Traits>>( formats::Century<CharT, Traits>{} );
+				result = formats::Century<CharT, Traits>{};
 				break;
 			case 'D':
 				default_width( current_width, 2 );
-				result.template emplace<formats::MonthDayYear<CharT, Traits, MaxLen>>(
-				  formats::MonthDayYear<CharT, Traits, MaxLen>{current_width} );
+				result = formats::MonthDayYear<CharT, Traits, MaxLen>{current_width};
 				break;
 			case 'd':
 			case 'e':
 				default_width( current_width, 2 );
-				result.template emplace<formats::Day<CharT, Traits>>( formats::Day<CharT, Traits>{current_width} );
+				result = formats::Day<CharT, Traits>{current_width};
 				break;
 			case 'F':
-				result.template emplace<formats::YearMonthDay<CharT, Traits>>( formats::YearMonthDay<CharT, Traits>{'-'} );
+				result = formats::YearMonthDay<CharT, Traits>{'-'};
 				break;
 			case 'g':
-				result.template emplace<formats::ISOWeekBasedYear<CharT, Traits>>( formats::ISOWeekBasedYear<CharT, Traits>{} );
+				result = formats::ISOWeekBasedYear<CharT, Traits>{};
 				break;
 			case 'G':
-				result.template emplace<formats::ISOWeekBasedYear<CharT, Traits>>(
-				  formats::ISOWeekBasedYear<CharT, Traits>{formats::locale_name_formats::abbreviated} );
+				result = formats::ISOWeekBasedYear<CharT, Traits>{formats::locale_name_formats::abbreviated};
 				break;
 			case 'H':
 				default_width( current_width, 2 );
-				result.template emplace<formats::Hour<CharT, Traits>>( formats::Hour<CharT, Traits>{current_width} );
+				result = formats::Hour<CharT, Traits>{current_width};
 				break;
 			case 'I':
 				default_width( current_width, 2 );
-				result.template emplace<formats::Hour<CharT, Traits>>(
-				  formats::Hour<CharT, Traits>{current_width, formats::hour_formats::twelve_hour} );
+				result = formats::Hour<CharT, Traits>{current_width, formats::hour_formats::twelve_hour};
 				break;
 			case 'j':
 				default_width( current_width, 3 );
-				result.template emplace<formats::Day_of_Year<CharT, Traits>>(
-				  formats::Day_of_Year<CharT, Traits>{current_width} );
+				result = formats::Day_of_Year<CharT, Traits>{current_width};
 				break;
 			case 'm':
 				default_width( current_width, 2 );
-				result.template emplace<formats::Month<CharT, Traits>>( formats::Month<CharT, Traits>{current_width} );
+				result = formats::Month<CharT, Traits>{current_width};
 				break;
 			case 'M':
 				default_width( current_width, 2 );
-				result.template emplace<formats::Minute<CharT, Traits>>( formats::Minute<CharT, Traits>{current_width} );
+				result = formats::Minute<CharT, Traits>{current_width};
 				break;
 			case 'n':
-				result.template emplace<StringData<CharT, MaxLen>>(
-				  StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\n"}} );
+				result = StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\n"}};
 				break;
 			case 't':
-				result.template emplace<StringData<CharT, MaxLen>>(
-				  StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\t"}} );
+				result = StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\t"}};
 				break;
 			case 'Y':
 				if( locale_modifer == locale_modifiers::E ) {
-					result.template emplace<formats::Year<CharT, Traits>>(
-					  formats::Year<CharT, Traits>{-1, formats::locale_name_formats::alternate} );
+					result = formats::Year<CharT, Traits>{-1, formats::locale_name_formats::alternate};
 				} else {
-					result.template emplace<formats::Year<CharT, Traits>>( formats::Year<CharT, Traits>{current_width} );
+					result = formats::Year<CharT, Traits>{current_width};
 				}
 				break;
 			default:
@@ -853,20 +841,164 @@ namespace date_formatting {
 		constexpr auto make_fmt_visitor( Args &&... args ) {
 			return fmt_visitor<CharT, Traits, Args...>{std::forward_as_tuple( std::forward<Args>( args )... )};
 		}
-	} // namespace impl
 
-	template<typename CharT, typename Traits = std::char_traits<CharT>, size_t MaxStringLen = 100>
-	struct date_formatter_t {
-		using fixed_string = daw::basic_static_string<CharT, MaxStringLen>;
-		using fmt_types = mpark::variant<
-		  formats::Century<CharT, Traits>, formats::Year<CharT, Traits>, formats::ISOWeekBasedYear<CharT, Traits>,
+		template<typename CharT, typename Traits, size_t MaxStringLen, typename T>
+		constexpr size_t date_field_index = daw::pack_index_of_v<
+		  T, formats::Century<CharT, Traits>, formats::Year<CharT, Traits>, formats::ISOWeekBasedYear<CharT, Traits>,
 		  formats::Month<CharT, Traits>, formats::Day<CharT, Traits>, formats::Day_of_Week<CharT, Traits>,
 		  formats::MonthName<CharT, Traits>, formats::LocaleDateTime<CharT, Traits>, formats::Day_of_Year<CharT, Traits>,
 		  formats::Hour<CharT, Traits>, formats::Minute<CharT, Traits>, formats::Second<CharT, Traits>,
 		  formats::YearMonthDay<CharT, Traits>, impl::StringData<CharT, MaxStringLen>, impl::IndexedFlag<CharT, Traits>,
 		  formats::MonthDayYear<CharT, Traits, MaxStringLen>>;
 
-		std::array<fmt_types, 100> formatters{};
+		template<typename CharT, typename Traits, size_t MaxStringLen = 100>
+		struct date_formatter_storage_t {
+			struct empty_t {};
+			union value_t {
+				formats::Century<CharT, Traits> val_century;
+				formats::Year<CharT, Traits> val_year;
+				formats::ISOWeekBasedYear<CharT, Traits> val_iso_week_based_year;
+				formats::Month<CharT, Traits> val_month;
+				formats::Day<CharT, Traits> val_day;
+				formats::Day_of_Week<CharT, Traits> val_day_of_week;
+				formats::MonthName<CharT, Traits> val_month_name;
+				formats::LocaleDateTime<CharT, Traits> val_locale_date_time;
+				formats::Day_of_Year<CharT, Traits> val_day_of_year;
+				formats::Hour<CharT, Traits> val_hour;
+				formats::Minute<CharT, Traits> val_minute;
+				formats::Second<CharT, Traits> val_second;
+				formats::YearMonthDay<CharT, Traits> val_year_month_day;
+				impl::StringData<CharT, MaxStringLen> val_string_data;
+				impl::IndexedFlag<CharT, Traits> val_indexed_flag;
+				formats::MonthDayYear<CharT, Traits, MaxStringLen> val_month_day_year;
+				empty_t empty;
+
+				constexpr value_t( ) noexcept
+				  : empty{} {}
+
+				constexpr value_t( formats::Century<CharT, Traits> const &cent ) noexcept
+				  : val_century{cent} {}
+
+				constexpr value_t( formats::Year<CharT, Traits> const &yr ) noexcept
+				  : val_year{yr} {}
+
+				constexpr value_t( formats::ISOWeekBasedYear<CharT, Traits> const &iso_wk_year ) noexcept
+				  : val_iso_week_based_year{iso_wk_year} {}
+
+				constexpr value_t( formats::Month<CharT, Traits> const &mo ) noexcept
+				  : val_month{mo} {}
+
+				constexpr value_t( formats::Day<CharT, Traits> const &dy ) noexcept
+				  : val_day{dy} {}
+
+				constexpr value_t( formats::Day_of_Week<CharT, Traits> const &dw ) noexcept
+				  : val_day_of_week{dw} {}
+
+				constexpr value_t( formats::MonthName<CharT, Traits> const &mo ) noexcept
+				  : val_month_name{mo} {}
+
+				constexpr value_t( formats::LocaleDateTime<CharT, Traits> const &loc ) noexcept
+				  : val_locale_date_time{loc} {}
+
+				constexpr value_t( formats::Day_of_Year<CharT, Traits> const &doy ) noexcept
+				  : val_day_of_year{doy} {}
+
+				constexpr value_t( formats::Hour<CharT, Traits> const &hr ) noexcept
+				  : val_hour{hr} {}
+
+				constexpr value_t( formats::Minute<CharT, Traits> const &min ) noexcept
+				  : val_minute{min} {}
+
+				constexpr value_t( formats::Second<CharT, Traits> const &sc ) noexcept
+				  : val_second{sc} {}
+
+				constexpr value_t( formats::YearMonthDay<CharT, Traits> const &ymd ) noexcept
+				  : val_year_month_day{ymd} {}
+
+				constexpr value_t( impl::StringData<CharT, MaxStringLen> const &str ) noexcept
+				  : val_string_data{str} {}
+
+				constexpr value_t( impl::IndexedFlag<CharT, Traits> const &idx ) noexcept
+				  : val_indexed_flag{idx} {}
+
+				constexpr value_t( formats::MonthDayYear<CharT, Traits, MaxStringLen> const &mdy ) noexcept
+				  : val_month_day_year{mdy} {}
+
+				template<typename U>
+				constexpr value_t( U const & other ): value_t( ) {}
+			};
+			value_t value;
+			size_t idx;
+
+			constexpr date_formatter_storage_t( ) noexcept
+			  : value{}
+			  , idx{std::numeric_limits<size_t>::max( )} {}
+
+			template<typename T>
+			constexpr date_formatter_storage_t( T &&date_field ) noexcept
+			  : value{std::forward<T>( date_field )}
+			  , idx{date_field_index<CharT, Traits, MaxStringLen, T>} {}
+
+			template<typename State, typename... Args>
+			constexpr void operator( )( State &state, Args &&... args ) {
+				switch( idx ) {
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Century<CharT, Traits>>:
+					value.val_century( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Year<CharT, Traits>>:
+					value.val_year( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::ISOWeekBasedYear<CharT, Traits>>:
+					value.val_iso_week_based_year( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Month<CharT, Traits>>:
+					value.val_month( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Day<CharT, Traits>>:
+					value.val_day( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Day_of_Week<CharT, Traits>>:
+					value.val_day_of_week( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::MonthName<CharT, Traits>>:
+					value.val_month_name( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::LocaleDateTime<CharT, Traits>>:
+					value.val_locale_date_time( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Day_of_Year<CharT, Traits>>:
+					value.val_day_of_year( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Hour<CharT, Traits>>:
+					value.val_hour( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Minute<CharT, Traits>>:
+					value.val_minute( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::Second<CharT, Traits>>:
+					value.val_second( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::YearMonthDay<CharT, Traits>>:
+					value.val_year_month_day( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, impl::StringData<CharT, MaxStringLen>>:
+					value.val_string_data( state );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, impl::IndexedFlag<CharT, Traits>>:
+					value.val_indexed_flag( state, std::forward<Args>( args )... );
+					break;
+				case date_field_index<CharT, Traits, MaxStringLen, formats::MonthDayYear<CharT, Traits, MaxStringLen>>:
+					value.val_month_day_year( state );
+					break;
+				}
+			}
+		};
+	} // namespace impl
+
+	template<typename CharT, typename Traits = std::char_traits<CharT>, size_t MaxStringLen = 100>
+	struct date_formatter_t {
+		using fixed_string = daw::basic_static_string<CharT, MaxStringLen>;
+		std::array<impl::date_formatter_storage_t<CharT, Traits, MaxStringLen>, 100> formatters{};
 		size_t pos = 0;
 
 		constexpr date_formatter_t( daw::basic_string_view<CharT, Traits> fmt_str ) {
@@ -893,8 +1025,7 @@ namespace date_formatting {
 		                                      FormatFlags &&... flags ) const {
 			auto state = impl::make_state( tp, oi );
 			for( size_t n = 0; n < pos; ++n ) {
-				mpark::visit( impl::make_fmt_visitor<CharT, Traits>( state, std::forward<FormatFlags>( flags )... ),
-				              formatters[n] );
+				formatters[n]( state, std::forward<FormatFlags>( flags )... );
 			}
 			return state.oi;
 		}
