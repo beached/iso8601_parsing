@@ -108,7 +108,8 @@ int main( ) {
 	date_formatting::fmt_stream( "%C %D\n", tp01, std::cout );
 
 	std::cout << "constexpr fmt object\n";
-	constexpr date_formatting::date_formatter_t<char> df2{"{0}T{1}:{2}:{3}\n"};
+	auto df2 = date_formatting::date_formatter_t<char>( "{0}T{1}:{2}:{3}\n" );
+
 	df2( tp01, oi, YearMonthDay{}, Hour{}, Minute{}, Second{} );
 	return EXIT_SUCCESS;
 }

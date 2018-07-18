@@ -854,7 +854,10 @@ namespace date_formatting {
 		template<typename CharT, typename Traits, size_t MaxStringLen = 100>
 		struct date_formatter_storage_t {
 			struct empty_t {};
+			static constexpr size_t const empty_idx = std::numeric_limits<size_t>::max( );
+
 			union value_t {
+				empty_t empty;
 				formats::Century<CharT, Traits> val_century;
 				formats::Year<CharT, Traits> val_year;
 				formats::ISOWeekBasedYear<CharT, Traits> val_iso_week_based_year;
@@ -871,73 +874,75 @@ namespace date_formatting {
 				impl::StringData<CharT, MaxStringLen> val_string_data;
 				impl::IndexedFlag<CharT, Traits> val_indexed_flag;
 				formats::MonthDayYear<CharT, Traits, MaxStringLen> val_month_day_year;
-				empty_t empty;
 
 				constexpr value_t( ) noexcept
-				  : empty{} {}
+				  : empty( ) {}
 
 				constexpr value_t( formats::Century<CharT, Traits> const &cent ) noexcept
-				  : val_century{cent} {}
+				  : val_century( cent ) {}
 
 				constexpr value_t( formats::Year<CharT, Traits> const &yr ) noexcept
-				  : val_year{yr} {}
+				  : val_year( yr ) {}
 
 				constexpr value_t( formats::ISOWeekBasedYear<CharT, Traits> const &iso_wk_year ) noexcept
-				  : val_iso_week_based_year{iso_wk_year} {}
+				  : val_iso_week_based_year( iso_wk_year ) {}
 
 				constexpr value_t( formats::Month<CharT, Traits> const &mo ) noexcept
-				  : val_month{mo} {}
+				  : val_month( mo ) {}
 
 				constexpr value_t( formats::Day<CharT, Traits> const &dy ) noexcept
-				  : val_day{dy} {}
+				  : val_day( dy ) {}
 
 				constexpr value_t( formats::Day_of_Week<CharT, Traits> const &dw ) noexcept
-				  : val_day_of_week{dw} {}
+				  : val_day_of_week( dw ) {}
 
 				constexpr value_t( formats::MonthName<CharT, Traits> const &mo ) noexcept
-				  : val_month_name{mo} {}
+				  : val_month_name( mo ) {}
 
 				constexpr value_t( formats::LocaleDateTime<CharT, Traits> const &loc ) noexcept
-				  : val_locale_date_time{loc} {}
+				  : val_locale_date_time( loc ) {}
 
 				constexpr value_t( formats::Day_of_Year<CharT, Traits> const &doy ) noexcept
-				  : val_day_of_year{doy} {}
+				  : val_day_of_year( doy ) {}
 
 				constexpr value_t( formats::Hour<CharT, Traits> const &hr ) noexcept
-				  : val_hour{hr} {}
+				  : val_hour( hr ) {}
 
 				constexpr value_t( formats::Minute<CharT, Traits> const &min ) noexcept
-				  : val_minute{min} {}
+				  : val_minute( min ) {}
 
 				constexpr value_t( formats::Second<CharT, Traits> const &sc ) noexcept
-				  : val_second{sc} {}
+				  : val_second( sc ) {}
 
 				constexpr value_t( formats::YearMonthDay<CharT, Traits> const &ymd ) noexcept
-				  : val_year_month_day{ymd} {}
+				  : val_year_month_day( ymd ) {}
 
 				constexpr value_t( impl::StringData<CharT, MaxStringLen> const &str ) noexcept
-				  : val_string_data{str} {}
+				  : val_string_data( str ) {}
 
 				constexpr value_t( impl::IndexedFlag<CharT, Traits> const &idx ) noexcept
-				  : val_indexed_flag{idx} {}
+				  : val_indexed_flag( idx ) {}
 
 				constexpr value_t( formats::MonthDayYear<CharT, Traits, MaxStringLen> const &mdy ) noexcept
-				  : val_month_day_year{mdy} {}
-
-				template<typename U>
-				constexpr value_t( U const & other ): value_t( ) {}
+				  : val_month_day_year( mdy ) {}
 			};
 			value_t value;
 			size_t idx;
 
 			constexpr date_formatter_storage_t( ) noexcept
-			  : value{}
-			  , idx{std::numeric_limits<size_t>::max( )} {}
+			  : value( )
+			  , idx( empty_idx ) {}
 
 			template<typename T>
 			constexpr date_formatter_storage_t( T &&date_field ) noexcept
-			  : value{std::forward<T>( date_field )}
-			  , idx{date_field_index<CharT, Traits, MaxStringLen, T>} {}
+			  : value( std::forward<T>( date_field ) )
+			  , idx( date_field_index<CharT, Traits, MaxStringLen, T> ) {}
+
+			template<typename T>
+			constexpr void emplace( T &&date_field ) noexcept {
+				value = value_t( std::forward<T>( date_field ) );
+				idx = date_field_index<CharT, Traits, MaxStringLen, T>;
+			}
 
 			template<typename State, typename... Args>
 			constexpr void operator( )( State &state, Args &&... args ) {
@@ -998,6 +1003,7 @@ namespace date_formatting {
 	template<typename CharT, typename Traits = std::char_traits<CharT>, size_t MaxStringLen = 100>
 	struct date_formatter_t {
 		using fixed_string = daw::basic_static_string<CharT, MaxStringLen>;
+
 		std::array<impl::date_formatter_storage_t<CharT, Traits, MaxStringLen>, 100> formatters{};
 		size_t pos = 0;
 
@@ -1022,7 +1028,7 @@ namespace date_formatting {
 
 		template<typename Duration, typename OutputIterator, typename... FormatFlags>
 		constexpr OutputIterator operator( )( date::sys_time<Duration> const &tp, OutputIterator oi,
-		                                      FormatFlags &&... flags ) const {
+		                                      FormatFlags &&... flags ) {
 			auto state = impl::make_state( tp, oi );
 			for( size_t n = 0; n < pos; ++n ) {
 				formatters[n]( state, std::forward<FormatFlags>( flags )... );
@@ -1031,3 +1037,4 @@ namespace date_formatting {
 		}
 	};
 } // namespace date_formatting
+
