@@ -44,4 +44,4 @@ target_link_libraries( benchmarks ${Boost_LIBRARIES} ${COMPILER_SPECIFIC_LIBS} $
 add_executable(small_test ${HEADER_FILES} ${TEST_FOLDER}/small_test.cpp )
 add_dependencies( small_test dependency_stub ) 
 
-install( DIRECTORY ${HEADER_FOLDER}/daw/iso8601/ DESTINATION include/daw/iso8601/ )
+install( DIRECTORY ${HEADER_FOLDER}/daw DESTINATION include )
