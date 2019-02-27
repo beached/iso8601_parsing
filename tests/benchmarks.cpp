@@ -78,7 +78,7 @@ int main( int argc, char **argv ) {
 	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += date_parsing::parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
+			result += daw::date_parsing::parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
@@ -102,7 +102,7 @@ int main( int argc, char **argv ) {
 	auto const bench_javascript_parser = []( std::vector<std::string> const &timestamps ) {
 		uintmax_t result{0};
 		for( auto const &ts : timestamps ) {
-			result += date_parsing::parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
+			result += daw::date_parsing::parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
 		}
 		return result;
 	};
@@ -124,7 +124,7 @@ int main( int argc, char **argv ) {
 
 		std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
 		for( auto const &ts : timestamps ) {
-			auto const r1 = date_parsing::parse_iso8601_timestamp( ts );
+			auto const r1 = daw::date_parsing::parse_iso8601_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
 				std::cout << "Difference while parsing " << ts << '\n';
@@ -160,7 +160,7 @@ int main( int argc, char **argv ) {
 
 		std::cout << "Testing with " << timestamps.size( ) << " timestamps\n";
 		for( auto const &ts : timestamps ) {
-			auto const r1 = date_parsing::parse_javascript_timestamp( ts );
+			auto const r1 = daw::date_parsing::parse_javascript_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			auto const r3 = sscanf_parse8601( ts );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
