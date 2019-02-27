@@ -28,19 +28,18 @@
 #include <ctime>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <date/date.h>
 
 #include <daw/cpp_17.h>
-#include <daw/daw_fixed_stack.h>
-#include <daw/daw_static_optional.h>
-#include <daw/daw_static_string.h>
+#include <daw/daw_bounded_string.h>
 #include <daw/daw_string_view.h>
 #include <daw/daw_utility.h>
 
-#include "common.h"
+#include "daw_common.h"
 
 namespace date_formatting {
 	struct invalid_date_field {};
@@ -69,7 +68,7 @@ namespace date_formatting {
 			OutputIterator oi;
 			date::year_month_day ymd;
 			time_t time;
-			mutable daw::static_optional<time_t> m_time;
+			mutable std::optional<time_t> m_time{};
 
 			using tod_t = decltype( get_tod( tp ) );
 
@@ -392,12 +391,12 @@ namespace date_formatting {
 		// Get nth value from a parameter pack
 		namespace impl {
 			template<typename CharT, typename Traits, typename State, typename Arg>
-			constexpr auto runarg( State &state, Arg &&arg ) -> std::enable_if_t<daw::is_callable_v<Arg, State &>> {
+			constexpr auto runarg( State &state, Arg &&arg ) -> std::enable_if_t<daw::traits::is_callable_v<Arg, State &>> {
 				arg( state );
 			}
 
 			template<typename CharT, typename Traits, typename State, typename Arg>
-			constexpr auto runarg( State &state, Arg &&arg ) -> std::enable_if_t<!daw::is_callable_v<Arg, State &>> {
+			constexpr auto runarg( State &state, Arg &&arg ) -> std::enable_if_t<!daw::traits::is_callable_v<Arg, State &>> {
 				std::basic_string<CharT, Traits> result = arg( );
 				state.oi = std::copy( result.cbegin( ), result.cend( ), state.oi );
 			}
@@ -670,7 +669,7 @@ namespace date_formatting {
 	namespace impl {
 		template<typename CharT, size_t MaxLen>
 		struct StringData {
-			daw::basic_static_string<CharT, MaxLen> data;
+			daw::basic_bounded_string<CharT, MaxLen> data;
 
 			template<typename State>
 			constexpr void operator( )( State &state ) const {
@@ -687,8 +686,8 @@ namespace date_formatting {
 		}
 
 		template<typename CharT, size_t MaxLen>
-		constexpr daw::basic_static_string<CharT, MaxLen> parse_string( daw::string_view &fmt_str ) noexcept {
-			daw::basic_static_string<CharT, MaxLen> result{};
+		constexpr daw::basic_bounded_string<CharT, MaxLen> parse_string( daw::string_view &fmt_str ) noexcept {
+			daw::basic_bounded_string<CharT, MaxLen> result{};
 			while( !fmt_str.empty( ) && result.has_room( 1 ) ) {
 				if( is_escape_symbol( fmt_str.front( ) ) ) {
 					break;
@@ -745,7 +744,7 @@ namespace date_formatting {
 			}
 			switch( fmt_str.front( ) ) {
 			case '%':
-				result = StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"%"}};
+				result = StringData<CharT, MaxLen>{daw::basic_bounded_string<CharT, MaxLen>{"%"}};
 				break;
 			case 'a':
 				result = formats::Day_of_Week<CharT, Traits>{formats::locale_name_formats::abbreviated};
@@ -805,10 +804,10 @@ namespace date_formatting {
 				result = formats::Minute<CharT, Traits>{current_width};
 				break;
 			case 'n':
-				result = StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\n"}};
+				result = StringData<CharT, MaxLen>{daw::basic_bounded_string<CharT, MaxLen>{"\n"}};
 				break;
 			case 't':
-				result = StringData<CharT, MaxLen>{daw::basic_static_string<CharT, MaxLen>{"\t"}};
+				result = StringData<CharT, MaxLen>{daw::basic_bounded_string<CharT, MaxLen>{"\t"}};
 				break;
 			case 'Y':
 				if( locale_modifer == locale_modifiers::E ) {
@@ -1002,7 +1001,7 @@ namespace date_formatting {
 
 	template<typename CharT, typename Traits = std::char_traits<CharT>, size_t MaxStringLen = 100>
 	struct date_formatter_t {
-		using fixed_string = daw::basic_static_string<CharT, MaxStringLen>;
+		using fixed_string = daw::basic_bounded_string<CharT, MaxStringLen>;
 
 		std::array<impl::date_formatter_storage_t<CharT, Traits, MaxStringLen>, 100> formatters{};
 		size_t pos = 0;

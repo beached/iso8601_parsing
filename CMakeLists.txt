@@ -26,9 +26,9 @@ set( TEST_FOLDER "tests" )
 include_directories( ${HEADER_FOLDER} )
 
 set( HEADER_FILES
-		${HEADER_FOLDER}/common.h
-		${HEADER_FOLDER}/date_formatting.h
-		${HEADER_FOLDER}/date_parsing.h
+		${HEADER_FOLDER}/daw/iso8601/daw_common.h
+		${HEADER_FOLDER}/daw/iso8601/daw_date_formatting.h
+		${HEADER_FOLDER}/daw/iso8601/daw_date_parsing.h
 )
 
 set( SOURCE_FILES
@@ -44,3 +44,4 @@ target_link_libraries( benchmarks ${Boost_LIBRARIES} ${COMPILER_SPECIFIC_LIBS} $
 add_executable(small_test ${HEADER_FILES} ${TEST_FOLDER}/small_test.cpp )
 add_dependencies( small_test dependency_stub ) 
 
+install( DIRECTORY ${HEADER_FOLDER}/daw/iso8601/ DESTINATION include/daw/iso8601/ )
