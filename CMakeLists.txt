@@ -1,23 +1,39 @@
 cmake_minimum_required(VERSION 3.9)
 project(iso8601_parsing)
 
-set(CMAKE_CXX_STANDARD 17)
+include( "${CMAKE_SOURCE_DIR}/dependent_projects/CMakeListsCompiler.txt" )
+
+include_directories( "./include" )
+
+set( DEP_ROOT_DIR_BASE "${CMAKE_SOURCE_DIR}/dependent_projects/build" )
+if( "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" )
+	set( DEP_ROOT_DIR "${DEP_ROOT_DIR_BASE}/debug" )
+elseif( "${CMAKE_BUILD_TYPE}" STREQUAL "Release" )
+	set( DEP_ROOT_DIR "${DEP_ROOT_DIR_BASE}/release" )
+elseif( "${CMAKE_BUILD_TYPE}" STREQUAL "" )
+	set( DEP_ROOT_DIR "${DEP_ROOT_DIR_BASE}/release" )
+endif( )
+
+message( "Building for: ${CMAKE_BUILD_TYPE}" )
+if( EXISTS "${DEP_ROOT_DIR}" )
+	message( "${DEP_ROOT_DIR}" )
+	message( "using dependency folder" )
+	add_custom_target( dependency_stub )
+	include_directories( SYSTEM "${DEP_ROOT_DIR}/install/include" )
+	link_directories( "${DEP_ROOT_DIR}/install/lib" )
+else( )
+	message( "downloading and building deps" )
+	include( "${CMAKE_SOURCE_DIR}/dependent_projects/dependencies.txt" )
+	add_library( dependency_stub STATIC "${CMAKE_SOURCE_DIR}/dependent_projects/stub.cpp" )
+	add_dependencies( dependency_stub ${DEP_PROJECT_DEPS} )
+endif( )
+
+include_directories( SYSTEM ${Boost_INCLUDE_DIRS} )
+link_directories( ${Boost_LIBRARY_DIRS} )
 
 find_package( Boost 1.58.0 COMPONENTS system iostreams filesystem regex unit_test_framework REQUIRED )
 include_directories( SYSTEM ${Boost_INCLUDE_DIRS} )
 link_directories( ${Boost_LIBRARY_DIRS} )
-
-if( EXISTS "${CMAKE_SOURCE_DIR}/dependent_projects/build" )
-	add_custom_target( dependency_stub )
-	include_directories( SYSTEM "${CMAKE_SOURCE_DIR}/dependent_projects/build/install/include" )
-	link_directories( "${CMAKE_SOURCE_DIR}/dependent_projects/build/install/lib" )
-else( )
-	set( SHOULD_BUILD_DEPS ON )
-	include( "${CMAKE_SOURCE_DIR}/dependent_projects/dependencies.txt" )
-
-	add_library( dependency_stub STATIC "${CMAKE_SOURCE_DIR}/dependent_projects/stub.cpp" )
-	add_dependencies( dependency_stub header_libraries_prj date_prj )
-endif( )
 
 set( HEADER_FOLDER "include" )
 set( SOURCE_FOLDER "src" )
@@ -45,3 +61,5 @@ add_executable(small_test ${HEADER_FILES} ${TEST_FOLDER}/small_test.cpp )
 add_dependencies( small_test dependency_stub ) 
 
 install( DIRECTORY ${HEADER_FOLDER}/daw DESTINATION include )
+cmake_minimum_required( VERSION 2.8.12 )
+

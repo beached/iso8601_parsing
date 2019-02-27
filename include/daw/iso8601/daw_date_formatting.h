@@ -91,7 +91,7 @@ namespace daw {
 
 			template<typename OutputIterator, typename CharT>
 			constexpr void put_char( OutputIterator &oi, CharT c ) {
-				*oi++ = c;
+				*oi++ = static_cast<char>( c );
 			}
 
 			template<typename OutputIterator>
@@ -180,7 +180,7 @@ namespace daw {
 		} // namespace impl
 
 		namespace formats {
-			enum class locale_name_formats { abbreviated, full, none, alternate };
+			enum class locale_name_formats : uint8_t { abbreviated, full, none, alternate };
 
 			template<typename CharT = char, typename Traits = std::char_traits<CharT>>
 			struct Century {
@@ -204,7 +204,7 @@ namespace daw {
 					} else {
 						auto yr = static_cast<int>( state.ymd.year( ) );
 						auto width = impl::format_width( field_width, yr );
-						impl::output_digits( CharT{}, width, state.oi, yr );
+						impl::output_digits( CharT{}, static_cast<size_t>( width ), state.oi, yr );
 					}
 				}
 			};
@@ -246,7 +246,7 @@ namespace daw {
 				constexpr void operator( )( State &state ) const {
 					auto dy = static_cast<int>( static_cast<unsigned>( state.ymd.day( ) ) );
 					auto width = impl::format_width( field_width, dy );
-					impl::output_digits( CharT{}, width, state.oi, dy );
+					impl::output_digits( CharT{}, static_cast<size_t>( width ), state.oi, dy );
 				}
 			};
 
@@ -298,7 +298,7 @@ namespace daw {
 					              .count( ) +
 					            1;
 					auto width = impl::format_width( field_width, diff );
-					impl::output_digits( CharT{}, width, state.oi, diff );
+					impl::output_digits( CharT{}, static_cast<size_t>( width ), state.oi, diff );
 				}
 			};
 
@@ -325,7 +325,7 @@ namespace daw {
 						hr -= 12;
 					}
 					auto width = impl::format_width( field_width, hr );
-					impl::output_digits( CharT{}, width, state.oi, hr );
+					impl::output_digits( CharT{}, static_cast<size_t>( width ), state.oi, hr );
 				}
 			};
 
@@ -337,7 +337,7 @@ namespace daw {
 				constexpr void operator( )( State &state ) const {
 					auto mn = static_cast<int>( state.tod.minutes( ).count( ) );
 					auto width = impl::format_width( field_width, mn );
-					impl::output_digits( CharT{}, width, state.oi, mn );
+					impl::output_digits( CharT{}, static_cast<size_t>( width ), state.oi, mn );
 				}
 			};
 
@@ -349,7 +349,7 @@ namespace daw {
 				constexpr void operator( )( State &state ) const {
 					auto sc = static_cast<int>( state.tod.seconds( ).count( ) );
 					auto width = impl::format_width( field_width, sc );
-					impl::output_digits( CharT{}, width, state.oi, sc );
+					impl::output_digits( CharT{}, static_cast<size_t>( width ), state.oi, sc );
 				}
 			};
 
@@ -571,8 +571,10 @@ namespace daw {
 					break;
 				case 'n':
 					put_newline( CharT{}, state.oi );
+					break;
 				case 't':
 					put_tab( CharT{}, state.oi );
+					break;
 				case 'Y':
 					if( locale_modifer == locale_modifiers::E ) {
 						formats::Year<CharT, Traits>{-1, formats::locale_name_formats::alternate}( state );
@@ -923,8 +925,8 @@ namespace daw {
 					constexpr value_t( impl::StringData<CharT, MaxStringLen> const &str ) noexcept
 					  : val_string_data( str ) {}
 
-					constexpr value_t( impl::IndexedFlag<CharT, Traits> const &idx ) noexcept
-					  : val_indexed_flag( idx ) {}
+					constexpr value_t( impl::IndexedFlag<CharT, Traits> const &Idx ) noexcept
+					  : val_indexed_flag( Idx ) {}
 
 					constexpr value_t( formats::MonthDayYear<CharT, Traits, MaxStringLen> const &mdy ) noexcept
 					  : val_month_day_year( mdy ) {}
@@ -1041,4 +1043,3 @@ namespace daw {
 		};
 	} // namespace date_formatting
 } // namespace daw
-

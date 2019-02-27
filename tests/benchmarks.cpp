@@ -30,6 +30,7 @@
 
 #include <daw/daw_benchmark.h>
 #include <daw/daw_memory_mapped_file.h>
+#include <daw/daw_utility.h>
 
 #include "daw/iso8601/daw_date_parsing.h"
 
@@ -163,6 +164,7 @@ int main( int argc, char **argv ) {
 			auto const r1 = daw::date_parsing::parse_javascript_timestamp( ts );
 			auto const r2 = parse8601( ts );
 			auto const r3 = sscanf_parse8601( ts );
+			Unused( r3 );
 			if( r1.time_since_epoch( ).count( ) != r2.time_since_epoch( ).count( ) ) {
 				std::cout << "Difference while parsing " << ts << '\n';
 				using namespace date;

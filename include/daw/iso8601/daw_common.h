@@ -69,7 +69,7 @@ namespace daw {
 		constexpr Result parse_unsigned( const CharT *digit_str ) noexcept {
 			Result result = 0;
 			for( size_t n = 0; n < count; ++n ) {
-				result = ( result << 1 ) + ( result << 3 ) + to_integer<Result>( digit_str[n] );
+				result = static_cast<Result>(( result << 1 ) + ( result << 3 )) + to_integer<Result>( digit_str[n] );
 			}
 			return result;
 		}
@@ -78,9 +78,9 @@ namespace daw {
 		constexpr Result parse_unsigned( daw::basic_string_view<CharT, Traits> number_string ) noexcept {
 			auto result = 0;
 			for( size_t n = 0; n < number_string.size( ); ++n ) {
-				result = ( result << 1 ) + ( result << 3 ) + to_integer<Result>( number_string[n] );
+				result = static_cast<Result>(( result << 1 ) + ( result << 3 )) + to_integer<Result>( number_string[n] );
 			}
-			return result;
+			return static_cast<Result>( result );
 		}
 
 		constexpr bool is_digit( char const c ) noexcept {
@@ -100,7 +100,7 @@ namespace daw {
 			return static_cast<char>( c | ' ' );
 		}
 
-		constexpr char to_lower( wchar_t const c ) noexcept {
+		constexpr wchar_t to_lower( wchar_t const c ) noexcept {
 			return static_cast<wchar_t>( c | L' ' );
 		}
 	} // namespace details
