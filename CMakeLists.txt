@@ -1,18 +1,25 @@
 cmake_minimum_required(VERSION 3.9)
 project(iso8601_parsing)
 
-include( "${CMAKE_SOURCE_DIR}/dependent_projects/CMakeListsCompiler.txt" )
+find_package( Boost 1.58.0 COMPONENTS system iostreams filesystem regex unit_test_framework REQUIRED )
 
-include_directories( "./include" )
+enable_testing( )
+add_definitions( -DBOOST_ALL_NO_LIB )
+
+find_package( Threads REQUIRED )
+
+set( CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard whose features are requested.")
+add_definitions( -DBOOST_TEST_DYN_LINK -DBOOST_ALL_NO_LIB -DBOOST_ALL_DYN_LINK )
+
+include( "${CMAKE_SOURCE_DIR}/dependent_projects/CMakeListsCompiler.txt" )
 
 set( DEP_ROOT_DIR_BASE "${CMAKE_SOURCE_DIR}/dependent_projects/build" )
 if( "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" )
 	set( DEP_ROOT_DIR "${DEP_ROOT_DIR_BASE}/debug" )
 elseif( "${CMAKE_BUILD_TYPE}" STREQUAL "Release" )
 	set( DEP_ROOT_DIR "${DEP_ROOT_DIR_BASE}/release" )
-elseif( "${CMAKE_BUILD_TYPE}" STREQUAL "" )
-	set( DEP_ROOT_DIR "${DEP_ROOT_DIR_BASE}/release" )
 endif( )
+message( "dependency root: ${DEP_ROOT_DIR}" )
 
 message( "Building for: ${CMAKE_BUILD_TYPE}" )
 if( EXISTS "${DEP_ROOT_DIR}" )
@@ -28,10 +35,8 @@ else( )
 	add_dependencies( dependency_stub ${DEP_PROJECT_DEPS} )
 endif( )
 
-include_directories( SYSTEM ${Boost_INCLUDE_DIRS} )
-link_directories( ${Boost_LIBRARY_DIRS} )
+include_directories( "./include" )
 
-find_package( Boost 1.58.0 COMPONENTS system iostreams filesystem regex unit_test_framework REQUIRED )
 include_directories( SYSTEM ${Boost_INCLUDE_DIRS} )
 link_directories( ${Boost_LIBRARY_DIRS} )
 
