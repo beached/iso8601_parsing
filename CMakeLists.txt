@@ -22,7 +22,8 @@ message( "dependency root: ${DEP_ROOT_DIR}" )
 
 message( "Building for: ${CMAKE_BUILD_TYPE}" )
 
-if( GLEAN_INSTALL_ROOT ) 
+option( GLEAN_INSTALL_ROOT "" )
+if( EXISTS "${GLEAN_INSTALL_ROOT}" ) 
 	message( "using glean dependencies" )
 	message( "installing to ${GLEAN_INSTALL_ROOT}" )
 
