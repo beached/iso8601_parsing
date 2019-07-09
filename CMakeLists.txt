@@ -63,15 +63,20 @@ set( HEADER_FILES
 set( SOURCE_FILES
 )
 
-add_executable(iso8601_test ${HEADER_FILES} ${TEST_FOLDER}/iso8601_tests.cpp )
-add_dependencies( iso8601_test dependency_stub ) 
+add_custom_target( full )
 
-add_executable(benchmarks ${HEADER_FILES} ${TEST_FOLDER}/benchmarks.cpp )
+add_executable(iso8601_test EXCLUDE_FROM_ALL ${HEADER_FILES} ${TEST_FOLDER}/iso8601_tests.cpp )
+add_dependencies( iso8601_test dependency_stub ) 
+add_dependencies( full iso8601_test )
+
+add_executable(benchmarks EXCLUDE_FROM_ALL ${HEADER_FILES} ${TEST_FOLDER}/benchmarks.cpp )
 add_dependencies( benchmarks dependency_stub ) 
 target_link_libraries( benchmarks ${Boost_LIBRARIES} ${COMPILER_SPECIFIC_LIBS} ${CMAKE_THREAD_LIBS_INIT} )
+add_dependencies( full benchmarks )
 
-add_executable(small_test ${HEADER_FILES} ${TEST_FOLDER}/small_test.cpp )
+add_executable(small_test EXCLUDE_FROM_ALL ${HEADER_FILES} ${TEST_FOLDER}/small_test.cpp )
 add_dependencies( small_test dependency_stub ) 
+add_dependencies( full small_test )
 
 install( DIRECTORY ${HEADER_FOLDER}/daw DESTINATION include )
 cmake_minimum_required( VERSION 2.8.12 )
