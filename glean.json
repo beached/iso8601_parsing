@@ -1,0 +1,18 @@
+{
+	"provides": "iso8601_parsing",
+	"build_type": "cmake",
+	"dependencies": [ 
+		{
+			"name": "header_libraries",
+			"download_type": "git",
+			"build_type": "cmake",
+			"uri": "https://github.com/beached/header_libraries.git"
+		},
+		{
+			"name": "date",
+			"download_type": "git",
+			"build_type": "cmake",
+			"uri": "https://github.com/howardhinnant/date.git"
+		}
+	]
+}
