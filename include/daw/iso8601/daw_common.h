@@ -76,7 +76,7 @@ namespace daw {
 
 		template<typename Result, typename CharT, typename Traits>
 		constexpr Result parse_unsigned( daw::basic_string_view<CharT, Traits> number_string ) noexcept {
-			auto result = 0;
+			Result result = 0;
 			for( size_t n = 0; n < number_string.size( ); ++n ) {
 				result = static_cast<Result>(( result << 1 ) + ( result << 3 )) + to_integer<Result>( number_string[n] );
 			}

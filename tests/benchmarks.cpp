@@ -53,10 +53,9 @@ date::sys_time<std::chrono::milliseconds> parse8601( std::string const &ts ) {
 
 date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &ts ) {
 	std::istringstream in{ts};
-	date::sys_time<std::chrono::milliseconds> tp;
 	int yr = 0;
-	int mo = 0;
-	int dy = 0;
+	unsigned int mo = 0;
+	unsigned int dy = 0;
 	int hr = 0;
 	int mi = 0;
 	int sc = 0;
@@ -77,35 +76,35 @@ date::sys_time<std::chrono::milliseconds> sscanf_parse8601( std::string const &t
 int main( int argc, char **argv ) {
 	std::ios::sync_with_stdio( false );
 	auto const bench_iso8601_parser = []( std::vector<std::string> const &timestamps ) {
-		uintmax_t result{0};
+		long long result = 0;
 		for( auto const &ts : timestamps ) {
 			result += daw::date_parsing::parse_iso8601_timestamp( ts ).time_since_epoch( ).count( );
 		}
-		return result;
+		return static_cast<uintmax_t>( result );
 	};
 
 	auto const bench_iso8601_parser2 = []( std::vector<std::string> const &timestamps ) {
-		uintmax_t result{0};
+		long long result = 0;
 		for( auto const &ts : timestamps ) {
 			result += parse8601( ts ).time_since_epoch( ).count( );
 		}
-		return result;
+		return static_cast<uintmax_t>( result );
 	};
 
 	auto const bench_iso8601_sscanf_parser = []( std::vector<std::string> const &timestamps ) {
-		uintmax_t result{0};
+		long long result = 0;
 		for( auto const &ts : timestamps ) {
 			result += sscanf_parse8601( ts ).time_since_epoch( ).count( );
 		}
-		return result;
+		return static_cast<uintmax_t>( result );
 	};
 
 	auto const bench_javascript_parser = []( std::vector<std::string> const &timestamps ) {
-		uintmax_t result{0};
+		long long result = 0;
 		for( auto const &ts : timestamps ) {
 			result += daw::date_parsing::parse_javascript_timestamp( ts ).time_since_epoch( ).count( );
 		}
-		return result;
+		return static_cast<uintmax_t>( result );
 	};
 
 	assert( argc > 1 );
