@@ -178,8 +178,8 @@ int main( int argc, char **argv ) {
 		  daw::bench_test2( "parse_javascript_timestamp", bench_javascript_parser, timestamps.size( ), timestamps );
 		auto const r2 = daw::bench_test2( "date_parse", bench_iso8601_parser2, timestamps.size( ), timestamps );
 		auto const r3 = daw::bench_test2( "sscanf", bench_iso8601_sscanf_parser, timestamps.size( ), timestamps );
-		assert( r1.get( ) == r2.get( ) );
-		assert( r2.get( ) == r3.get( ) );
+		daw::expecting( r1.get( ), r2.get( ) );
+		daw::expecting( r2.get( ), r3.get( ) );
 	}
 	return EXIT_SUCCESS;
 }
