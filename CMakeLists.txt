@@ -4,9 +4,6 @@ project(iso8601_parsing)
 
 #set( CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard whose features are requested.")
 
-find_package( OpenSSL REQUIRED )
-find_package( CURL REQUIRED )
-
 enable_testing()
 
 include("${CMAKE_SOURCE_DIR}/dependent_projects/CMakeListsCompiler.txt")
