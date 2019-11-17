@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12 )
 
 project(iso8601_parsing)
 
 #set( CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard whose features are requested.")
+
+find_package( OpenSSL REQUIRED )
+find_package( CURL REQUIRED )
 
 enable_testing()
 
