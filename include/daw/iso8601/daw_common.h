@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <daw/daw_exception.h>
 #include <daw/daw_string_view.h>
 
 struct invalid_iso8601_timestamp {};
@@ -39,9 +40,7 @@ namespace daw {
 		template<typename Result, size_t count, typename CharT, typename Traits>
 		constexpr Result consume_unsigned( daw::basic_string_view<CharT, Traits> &digit_str ) {
 			static_assert( count > 0, "Must consume at least one digit from string" );
-			if( digit_str.size( ) < count ) {
-				throw insuffient_input{};
-			}
+			daw::exception::precondition_check<insuffient_input>( count <= digit_str.size( ) );
 			auto result = to_integer<Result>( digit_str[0] );
 			for( size_t n = 1; n < count; ++n ) {
 				result *= 10;
@@ -53,9 +52,7 @@ namespace daw {
 
 		template<typename Result, typename CharT, typename Traits>
 		constexpr Result consume_unsigned( daw::basic_string_view<CharT, Traits> &digit_str, size_t const count ) {
-			if( digit_str.size( ) < count ) {
-				throw insuffient_input{};
-			}
+			daw::exception::precondition_check<insuffient_input>( count <= digit_str.size( ) );
 			auto result = to_integer<Result>( digit_str[0] );
 			for( size_t n = 1; n < count; ++n ) {
 				result *= 10;
@@ -69,7 +66,7 @@ namespace daw {
 		constexpr Result parse_unsigned( const CharT *digit_str ) noexcept {
 			Result result = 0;
 			for( size_t n = 0; n < count; ++n ) {
-				result = static_cast<Result>(( result << 1 ) + ( result << 3 )) + to_integer<Result>( digit_str[n] );
+				result = static_cast<Result>( ( result << 1 ) + ( result << 3 ) ) + to_integer<Result>( digit_str[n] );
 			}
 			return result;
 		}
@@ -78,7 +75,7 @@ namespace daw {
 		constexpr Result parse_unsigned( daw::basic_string_view<CharT, Traits> number_string ) noexcept {
 			Result result = 0;
 			for( size_t n = 0; n < number_string.size( ); ++n ) {
-				result = static_cast<Result>(( result << 1 ) + ( result << 3 )) + to_integer<Result>( number_string[n] );
+				result = static_cast<Result>( ( result << 1 ) + ( result << 3 ) ) + to_integer<Result>( number_string[n] );
 			}
 			return static_cast<Result>( result );
 		}

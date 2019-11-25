@@ -416,10 +416,9 @@ namespace daw::date_formatting {
 
 		template<typename CharT, typename Traits, typename State, typename... Args>
 		constexpr void get_string_value( size_t const n, State &state, Args &&... args ) {
-			if( n >= sizeof...( Args ) ) {
-				throw std::out_of_range{"Invalid index to parameter pack"};
-			}
-			::daw::date_formatting::formats::impl::get_string_value<0, CharT, Traits>( n, state, std::forward<Args>( args )... );
+			daw::exception::precondition_check<std::out_of_range>( n < sizeof...( Args ), "Invalid index to parameter pack" );
+			::daw::date_formatting::formats::impl::get_string_value<0, CharT, Traits>( n, state,
+			                                                                           std::forward<Args>( args )... );
 		}
 	} // namespace formats
 
@@ -466,9 +465,7 @@ namespace daw::date_formatting {
 		                              FormatFlags &&... flags ) {
 			fmt_str.remove_prefix( 1 );
 			auto const pos_last = fmt_str.find_first_of( static_cast<CharT>( '}' ) );
-			if( pos_last == fmt_str.npos || pos_last == 0 ) {
-				throw invalid_date_field{};
-			}
+			daw::exception::precondition_check<invalid_date_field>( pos_last != fmt_str.npos and pos_last != 0 );
 			auto const idx = daw::details::parse_unsigned<size_t>( fmt_str.substr( 0, pos_last ) );
 			formats::get_string_value<CharT, Traits>( idx, state, std::forward<FormatFlags>( flags )... );
 			fmt_str.remove_prefix( pos_last );
@@ -580,7 +577,7 @@ namespace daw::date_formatting {
 				}
 				break;
 			default:
-				throw invalid_date_field{};
+				daw::exception::daw_throw<invalid_date_field>( );
 			}
 		}
 	} // namespace impl
@@ -714,9 +711,7 @@ namespace daw::date_formatting {
 		constexpr IndexedFlag<CharT, Traits> process_brace2( daw::basic_string_view<CharT, Traits> &fmt_str ) {
 			fmt_str.remove_prefix( 1 );
 			auto const pos_last = fmt_str.find_first_of( static_cast<CharT>( '}' ) );
-			if( pos_last == fmt_str.npos || pos_last == 0 ) {
-				throw invalid_date_field{};
-			}
+			daw::exception::precondition_check<invalid_date_field>( pos_last != fmt_str.npos and pos_last != 0 );
 			auto const idx = daw::details::parse_unsigned<size_t>( fmt_str.substr( 0, pos_last ) );
 			fmt_str.remove_prefix( pos_last );
 			return IndexedFlag<CharT, Traits>{idx};
@@ -819,7 +814,7 @@ namespace daw::date_formatting {
 				}
 				break;
 			default:
-				throw invalid_date_field{};
+				daw::exception::daw_throw<invalid_date_field>( );
 			}
 			fmt_str.remove_prefix( 1 );
 		}

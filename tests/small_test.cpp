@@ -85,7 +85,7 @@ int main( ) {
 	using namespace daw::date_formatting::formats;
 	std::cout << "fmt with format classes\n";
 	daw::date_formatting::fmt( "{0}T{1}:{2}:{3} DOW->{4}\n", tp01, oi, YearMonthDay{}, Hour{}, Minute{}, Second{},
-	                      Day_of_Week{} );
+	                           Day_of_Week{} );
 
 	auto const date_str = testcx( "2018-01-02T01:02:04.343Z" );
 	std::cout << date_str.value;

@@ -193,9 +193,8 @@ namespace daw {
 		template<typename CharT, typename Traits>
 		constexpr std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>
 		parse_javascript_timestamp( daw::basic_string_view<CharT, Traits> timestamp_str ) {
-			if( timestamp_str.size( ) != 24 || daw::details::to_lower( timestamp_str[23] ) != 'z' ) {
-				throw invalid_javascript_timestamp{};
-			}
+			daw::exception::precondition_check<invalid_javascript_timestamp>(
+			  timestamp_str.size( ) == 24 and daw::details::to_lower( timestamp_str[23] ) == 'z' );
 			auto const yr = daw::details::parse_unsigned<uint16_t, 4>( timestamp_str.data( ) );
 			auto const mo = daw::details::parse_unsigned<uint8_t, 2>( timestamp_str.data( ) + 5 );
 			auto const dy = daw::details::parse_unsigned<uint8_t, 2>( timestamp_str.data( ) + 8 );
@@ -224,4 +223,3 @@ namespace daw {
 		}
 	} // namespace date_parsing
 } // namespace daw
-
