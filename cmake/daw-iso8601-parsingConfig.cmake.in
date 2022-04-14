@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency( daw-header-libraries )
+find_dependency( date::date )
+
+include("${CMAKE_CURRENT_LIST_DIR}/daw-iso8601-parsingTargets.cmake")
+
+check_required_components( iso8601-parsing )
