@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
 
 project("daw-iso8601-parsing"
-        VERSION "0.1.0"
+        VERSION "0.1.1"
         DESCRIPTION "Helpers for parsing iso8601 timestamps"
         HOMEPAGE_URL "https://github.com/beached/iso8601_parsing"
         LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard whose features are requested.")
+option(DAW_USE_PACKAGE_MANAGEMENT "Uses by package managers to disable FetchContent of deps" OFF)
 
 if (NOT DAW_USE_PACKAGE_MANAGEMENT)
     add_subdirectory(extern)
@@ -35,7 +36,7 @@ set(HEADER_FILES
 
 add_library(${PROJECT_NAME} INTERFACE)
 add_library(daw::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-target_link_libraries(${PROJECT_NAME} INTERFACE daw::daw-header-libraries date::date )
+target_link_libraries(${PROJECT_NAME} INTERFACE daw::daw-header-libraries date::date)
 
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_20)
 target_include_directories(${PROJECT_NAME}
