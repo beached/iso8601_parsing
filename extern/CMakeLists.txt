@@ -10,18 +10,10 @@ include(FetchContent)
 
 set(DAW_ENABLE_TESTING OFF)
 
-FetchContent_Declare(
-        daw-header-libraries
-        GIT_REPOSITORY "https://github.com/beached/header_libraries.git"
-)
-
-FetchContent_Declare(
-        howardhinnant-date
-        GIT_REPOSITORY "https://github.com/howardhinnant/date.git"
-)
-
-FetchContent_MakeAvailable(
-        daw-header-libraries
-        howardhinnant-date
-)
-
+if (NOT TARGET daw::daw-header-libraries)
+    FetchContent_Declare(
+            daw-header-libraries
+            GIT_REPOSITORY "https://github.com/beached/header_libraries.git"
+    )
+    FetchContent_MakeAvailable(daw-header-libraries)
+endif ()

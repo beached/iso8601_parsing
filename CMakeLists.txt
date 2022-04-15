@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
 project("daw-iso8601-parsing"
-        VERSION "0.1.1"
+        VERSION "0.1.2"
         DESCRIPTION "Helpers for parsing iso8601 timestamps"
         HOMEPAGE_URL "https://github.com/beached/iso8601_parsing"
         LANGUAGES C CXX)
